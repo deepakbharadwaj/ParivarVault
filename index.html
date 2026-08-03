@@ -690,7 +690,13 @@
           </div>
           <button onclick="clearFileSelection()" class="text-red-400 hover:text-red-300 text-sm"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div class="flex space-x-3">
+        <!-- Due date inline — no second popup needed -->
+        <div class="mt-3 pt-3 border-t border-white/10">
+          <label class="text-xs text-gray-400 block mb-1.5"><i class="fa-solid fa-calendar-plus text-blue-400 mr-1"></i> Set Due Date (optional)</label>
+          <input id="upload-due-date" type="date" class="modal-input" />
+          <p class="text-[10px] text-gray-500 mt-1">If set, file is renamed with "_due_YYYY-MM-DD" for renewal tracking. Leave blank to skip.</p>
+        </div>
+        <div class="flex space-x-3 mt-4">
           <button id="upload-submit-btn" onclick="submitFileUpload()" disabled class="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white font-medium transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed">
             <i class="fa-solid fa-upload mr-2"></i> <span data-i18n="modal.upload">Upload</span>
           </button>
@@ -778,30 +784,6 @@
       </div>
     </div>
 
-    <!-- ─── Upload with Due Date Modal (enhanced upload) ─── -->
-    <div id="modal-upload-with-due" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeUploadWithDueModal()">
-      <div class="modal-dialog" onclick="event.stopPropagation()">
-        <div class="flex items-center justify-between mb-5">
-          <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-calendar-plus text-blue-400 mr-2"></i><span>Set Due Date (Optional)</span></h3>
-          <button onclick="closeUploadWithDueModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
-        </div>
-        <div id="due-prompt-file-info" class="text-xs text-gray-400 mb-4 bg-white/5 rounded-lg p-3"></div>
-        <div class="space-y-4">
-          <div>
-            <label class="text-xs text-gray-400 block mb-1.5">When is the next due date? (optional)</label>
-            <input id="due-date-prompt-input" type="date" class="modal-input" />
-          </div>
-          <p class="text-[10px] text-gray-500">If set, the file will be renamed with "_due_YYYY-MM-DD" for renewal tracking. Leave blank to skip.</p>
-          <div class="flex space-x-3">
-            <button onclick="submitUploadWithDueDate()" class="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors flex items-center justify-center">
-              <i class="fa-solid fa-check mr-2"></i> Continue Upload
-            </button>
-            <button onclick="skipDueDateUpload()" class="glass-button px-4 py-2.5 rounded-xl text-sm text-gray-400">Skip</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <script>
       // ═══════════════════════════════════════════════════════
       // I18N — Multi-Language Translation System
@@ -837,7 +819,8 @@
             confirmDelete: "Confirm Delete", delete: "Delete",
             deleteWarning: "This action moves the item to trash. You can recover it from Google Drive trash.",
             deleteFolderWarning: "Are you sure you want to delete ", deleteFileWarning: "Are you sure you want to delete ",
-            trashRecoverable: "Items go to Google Drive trash — recoverable within 30 days."
+            trashRecoverable: "Items go to Google Drive trash — recoverable within 30 days.",
+            renameTitle: "Rename", newName: "New Name", saveChanges: "Save Changes"
           },
           actions: {
             addMember: "Add Member", addVehicle: "Add Vehicle", addProperty: "Add Property",
@@ -877,7 +860,8 @@
             confirmDelete: "हटाने की पुष्टि करें", delete: "हटाएं",
             deleteWarning: "यह आइटम ट्रैश में जाएगा। आप Google Drive ट्रैश से पुनर्प्राप्त कर सकते हैं।",
             deleteFolderWarning: "क्या आप वाकई हटाना चाहते हैं ", deleteFileWarning: "क्या आप वाकई हटाना चाहते हैं ",
-            trashRecoverable: "आइटम Google Drive ट्रैश में जाते हैं — 30 दिनों के भीतर पुनर्प्राप्त करने योग्य।"
+            trashRecoverable: "आइटम Google Drive ट्रैश में जाते हैं — 30 दिनों के भीतर पुनर्प्राप्त करने योग्य।",
+            renameTitle: "नाम बदलें", newName: "नया नाम", saveChanges: "परिवर्तन सहेजें"
           },
           actions: {
             addMember: "सदस्य जोड़ें", addVehicle: "वाहन जोड़ें", addProperty: "संपत्ति जोड़ें",
@@ -953,7 +937,7 @@
         gu: "🇮🇳 ગુજરાતી", kn: "🇮🇳 ಕನ್ನಡ", ml: "🇮🇳 മലയാളം", or: "🇮🇳 ଓଡ଼ିଆ"
       };
 
-      let currentLang = localStorage.getItem("vault_lang") || "en";
+      let currentLang = safeStorageGet("vault_lang") || "en";
 
       function t(key) {
         const keys = key.split(".");
@@ -982,7 +966,7 @@
 
       function changeLanguage(lang) {
         currentLang = lang;
-        localStorage.setItem("vault_lang", lang);
+        safeStorageSet("vault_lang", lang);
         applyTranslations();
         renderAll();
         const titles = {
@@ -1185,12 +1169,61 @@
       async function forceSync() {
         const syncIcon = document.getElementById("sync-icon");
         syncIcon.classList.add("fa-spin");
-        localStorage.removeItem("vault_cache_v3");
+        safeStorageRemove("vault_cache_v3");
+        MEM_CACHE.vault = null;
         document.getElementById("loading-state").classList.remove("hidden");
         setTimeout(async () => {
           await syncVaultData(true);
           syncIcon.classList.remove("fa-spin");
         }, 100);
+      }
+
+      // Silent background refresh — updates data without loading overlay.
+      // Called after every mutation (add/rename/delete/upload).
+      // Shows a brief "Syncing..." toast, fetches fresh data, re-renders.
+      async function silentRefresh() {
+        safeStorageRemove("vault_cache_v3");
+        MEM_CACHE.vault = null;
+        showToast("Syncing vault...", "info", 2000);
+        await new Promise(r => setTimeout(r, 500));
+        try {
+          const res = await fetch(appState.config.appsScriptUrl);
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          const cleanFiles = (files) => files ? files.filter(f => f && f.name && !f.name.startsWith('.')) : [];
+          appState.people = data.people ? data.people.map(p => ({ ...p, files: cleanFiles(p.files) })) : [];
+          appState.vehicles = data.vehicles ? data.vehicles.map(v => ({ ...v, files: cleanFiles(v.files) })) : [];
+          appState.properties = data.properties ? data.properties.map(prop => ({ ...prop, files: cleanFiles(prop.files) })) : [];
+          appState.shared = cleanFiles(data.shared);
+          appState.driveData = cleanFiles(data.allFiles);
+          updateLocalCache();
+          processRenewals();
+          renderAll();
+          if (typeof currentDetailName !== 'undefined' && currentDetailName) openMemberDetail(currentDetailName);
+          if (typeof medicalSelectedPerson !== 'undefined' && medicalSelectedPerson) openMedicalDetail(medicalSelectedPerson);
+        } catch (e) {
+          console.warn("[Vault] Silent refresh failed:", e.message);
+          try {
+            await new Promise(r => setTimeout(r, 500));
+            const res2 = await fetch(appState.config.appsScriptUrl);
+            const data2 = await res2.json();
+            if (!data2.error) {
+              const cf = (files) => files ? files.filter(f => f && f.name && !f.name.startsWith('.')) : [];
+              appState.people = data2.people ? data2.people.map(p => ({ ...p, files: cf(p.files) })) : [];
+              appState.vehicles = data2.vehicles ? data2.vehicles.map(v => ({ ...v, files: cf(v.files) })) : [];
+              appState.properties = data2.properties ? data2.properties.map(prop => ({ ...prop, files: cf(prop.files) })) : [];
+              appState.shared = cf(data2.shared);
+              appState.driveData = cf(data2.allFiles);
+              updateLocalCache();
+              processRenewals();
+              renderAll();
+              if (typeof currentDetailName !== 'undefined' && currentDetailName) openMemberDetail(currentDetailName);
+              if (typeof medicalSelectedPerson !== 'undefined' && medicalSelectedPerson) openMedicalDetail(medicalSelectedPerson);
+            }
+          } catch (e2) {
+            console.warn("[Vault] Silent refresh retry also failed:", e2.message);
+          }
+        }
       }
 
       function navigate(viewName) {
@@ -1219,9 +1252,18 @@
       async function syncVaultData(forceRefresh = false) {
         try {
           if (!forceRefresh) {
-            const cached = localStorage.getItem("vault_cache_v3");
+            // Try in-memory cache first, then localStorage
+            if (MEM_CACHE.vault && !appState.isDemo) {
+              parseCachedData(MEM_CACHE.vault);
+              document.getElementById("loading-state").classList.add("hidden");
+              navigate("home");
+              return;
+            }
+            const cached = safeStorageGet("vault_cache_v3");
             if (cached && !appState.isDemo) {
-              parseCachedData(JSON.parse(cached));
+              const data = JSON.parse(cached);
+              MEM_CACHE.vault = data;
+              parseCachedData(data);
               document.getElementById("loading-state").classList.add("hidden");
               navigate("home");
               return;
@@ -1233,17 +1275,14 @@
           const data = await res.json();
           if (data.error) throw new Error(data.error);
 
-          const cleanFiles = (files) => files ? files.filter(f => !f.name.startsWith('.')) : [];
+          const cleanFiles = (files) => files ? files.filter(f => f && f.name && !f.name.startsWith('.')) : [];
           appState.people = data.people ? data.people.map(p => ({ ...p, files: cleanFiles(p.files) })) : [];
           appState.vehicles = data.vehicles ? data.vehicles.map(v => ({ ...v, files: cleanFiles(v.files) })) : [];
           appState.properties = data.properties ? data.properties.map(prop => ({ ...prop, files: cleanFiles(prop.files) })) : [];
           appState.shared = cleanFiles(data.shared);
           appState.driveData = cleanFiles(data.allFiles);
 
-          localStorage.setItem("vault_cache_v3", JSON.stringify({
-            people: appState.people, vehicles: appState.vehicles, properties: appState.properties,
-            shared: appState.shared, allFiles: appState.driveData
-          }));
+          updateLocalCache();
           processRenewals();
           document.getElementById("loading-state").classList.add("hidden");
           renderAll();
@@ -1265,6 +1304,60 @@
         appState.driveData = data.allFiles || [];
         processRenewals();
         renderAll();
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // SMART CACHE — Dual-layer: in-memory + localStorage
+      // Avoids full network re-sync after every mutation.
+      // Works reliably in PWA context (localStorage is available).
+      // ═══════════════════════════════════════════════════════
+      const MEM_CACHE = {}; // In-memory mirror for instant access
+
+      function safeStorageGet(key) {
+        try { return localStorage.getItem(key); }
+        catch (e) { return null; }
+      }
+
+      function safeStorageSet(key, value) {
+        try { localStorage.setItem(key, value); return true; }
+        catch (e) { console.warn("[Vault] localStorage write failed:", e.message); return false; }
+      }
+
+      function safeStorageRemove(key) {
+        try { localStorage.removeItem(key); }
+        catch (e) { /* ignore */ }
+      }
+
+      function updateLocalCache() {
+        const cacheData = {
+          people: appState.people, vehicles: appState.vehicles,
+          properties: appState.properties, shared: appState.shared,
+          allFiles: appState.driveData
+        };
+        // Update in-memory mirror
+        MEM_CACHE.vault = cacheData;
+        // Persist to localStorage (PWA-safe: localStorage works in installed PWAs)
+        safeStorageSet("vault_cache_v3", JSON.stringify(cacheData));
+      }
+
+      function refreshFromLocalCache() {
+        const cached = MEM_CACHE.vault;
+        if (cached) {
+          parseCachedData(cached);
+          return;
+        }
+        // Fallback: try localStorage
+        const stored = safeStorageGet("vault_cache_v3");
+        if (stored) {
+          try {
+            const data = JSON.parse(stored);
+            MEM_CACHE.vault = data;
+            parseCachedData(data);
+          } catch (e) {
+            console.warn("[Vault] Cache parse failed, clearing.");
+            safeStorageRemove("vault_cache_v3");
+          }
+        }
       }
 
       function processRenewals() {
@@ -1939,10 +2032,11 @@
             { date: "2026-06-01", bpSystolic: 110, bpDiastolic: 70, sugarFasting: 88, weight: 45, height: 148, heartRate: 72, notes: "Annual checkup" },
           ],
         };
-        localStorage.setItem("vault_health_vitals", JSON.stringify(demoVitals));
+        safeStorageSet("vault_health_vitals", JSON.stringify(demoVitals));
 
         // ── Remove cached real data ──────────────────────────
-        localStorage.removeItem("vault_cache_v3");
+        safeStorageRemove("vault_cache_v3");
+        MEM_CACHE.vault = null;
 
         processRenewals();
         renderAll();
@@ -1955,12 +2049,12 @@
       const VITALS_STORAGE_KEY = "vault_health_vitals";
 
       function getVitalsData() {
-        try { return JSON.parse(localStorage.getItem(VITALS_STORAGE_KEY)) || {}; }
+        try { return JSON.parse(safeStorageGet(VITALS_STORAGE_KEY)) || {}; }
         catch (e) { return {}; }
       }
 
       function saveVitalsData(data) {
-        localStorage.setItem(VITALS_STORAGE_KEY, JSON.stringify(data));
+        safeStorageSet(VITALS_STORAGE_KEY, JSON.stringify(data));
       }
 
       function getPersonVitals(personName) {
@@ -2216,31 +2310,28 @@
         }
         try {
           const url = appState.config.appsScriptUrl;
-          // For uploadFile action, send JSON body; for others, send as form data
-          const isUpload = params.action === "uploadFile";
-          let response;
-          if (isUpload) {
-            response = await fetch(url, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(params)
-            });
-          } else {
-            const formData = new URLSearchParams();
-            Object.keys(params).forEach(k => formData.append(k, params[k]));
-            response = await fetch(url, {
-              method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: formData.toString()
-            });
-          }
+          // Always use URL-encoded form data — it's a CORS-simple content type
+          // so no preflight is triggered, and Google Apps Script's e.parameter
+          // always works regardless of how the app is served (localhost or Cloudflare).
+          const formData = new URLSearchParams();
+          Object.keys(params).forEach(k => formData.append(k, params[k]));
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formData.toString()
+          });
           const result = await response.json();
           if (!result.success) {
             showToast(result.error || "Operation failed", "error");
           }
           return result;
         } catch (err) {
-          showToast("Network error: " + err.message, "error");
+          const msg = err.message || String(err);
+          if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+            showToast("Network error: Could not reach Google Apps Script. The upload may still have succeeded — try refreshing.", "error", 6000);
+          } else {
+            showToast("Network error: " + msg, "error");
+          }
           return null;
         }
       }
@@ -2262,7 +2353,7 @@
         if (result && result.success) {
           showToast("Member '" + name + "' added successfully!", "success");
           closeAddMemberModal();
-          await forceSync();
+          await silentRefresh();
         }
       }
 
@@ -2283,7 +2374,7 @@
         if (result && result.success) {
           showToast("Vehicle '" + name + "' added!", "success");
           closeAddVehicleModal();
-          await forceSync();
+          await silentRefresh();
         }
       }
 
@@ -2304,7 +2395,7 @@
         if (result && result.success) {
           showToast("Property '" + name + "' added!", "success");
           closeAddPropertyModal();
-          await forceSync();
+          await silentRefresh();
         }
       }
 
@@ -2348,7 +2439,7 @@
         }
         if (result && result.success) {
           showToast("'" + d.label + "' deleted successfully!", "success");
-          await forceSync();
+          await silentRefresh();
           // Navigate back to list view if we deleted a folder
           if (wasFolderDelete) {
             if (deletedParentType === "PEOPLE") navigate("members");
@@ -2373,6 +2464,7 @@
         document.getElementById("upload-drop-zone").classList.remove("hidden");
         document.getElementById("upload-submit-btn").disabled = true;
         document.getElementById("upload-file-input").value = "";
+        document.getElementById("upload-due-date").value = "";
         document.getElementById("modal-upload-file").classList.remove("hidden-modal");
       }
 
@@ -2383,8 +2475,13 @@
       }
 
       function onFileSelected(input) {
-        if (input.files && input.files[0]) {
+        if (input && input.files && input.files[0]) {
           const file = input.files[0];
+          if (!file || !file.name) {
+            showToast("Invalid file selected.", "error");
+            input.value = "";
+            return;
+          }
           if (file.size > 5 * 1024 * 1024) {
             showToast("File too large. Max 5 MB.", "error");
             input.value = "";
@@ -2409,8 +2506,8 @@
 
       async function submitFileUpload() {
         if (!selectedFile || !uploadTarget) return;
-        // Prompt for optional due date before uploading
-        promptDueDateForUpload(selectedFile);
+        const dueDate = document.getElementById("upload-due-date").value || null;
+        await doActualUpload(selectedFile, dueDate);
       }
 
       function fileToBase64(file) {
@@ -2461,7 +2558,7 @@
         if (result && result.success) {
           showToast(`Renamed "${result.oldName}" → "${result.newName}"`, "success");
           closeRenameModal();
-          await forceSync();
+          await silentRefresh();
         }
       }
 
@@ -2490,12 +2587,28 @@
         input.onchange = async () => {
           if (!input.files || !input.files[0]) return;
           const file = input.files[0];
+          if (!file || !file.name) {
+            showToast("Invalid photo selected.", "error");
+            return;
+          }
           if (file.size > 5 * 1024 * 1024) {
             showToast("Photo too large. Max 5 MB.", "error");
             return;
           }
           try {
-            showToast("Uploading photo...", "info", 1500);
+            showToast("Uploading photo...", "info", 2000);
+
+            // Delete old profile photos first so only one exists at a time
+            const person = appState.people.find(p => p.name === folderName);
+            if (person) {
+              const oldPhotos = person.files.filter(f =>
+                f.name.toLowerCase().includes("photo")
+              );
+              for (const old of oldPhotos) {
+                await apiPost({ action: "deleteFile", fileId: old.id });
+              }
+            }
+
             const base64 = await fileToBase64(file);
             const result = await apiPost({
               action: "uploadFile",
@@ -2506,11 +2619,11 @@
               mimeType: file.type || "image/jpeg"
             });
             if (result && result.success) {
-              showToast("Profile photo uploaded!", "success");
-              await forceSync();
+              await silentRefresh();
+              showToast("Profile photo updated!", "success");
             }
           } catch (err) {
-            showToast("Photo upload failed: " + err.message, "error");
+            showToast("Photo upload failed: " + (err.message || String(err)), "error");
           }
         };
         input.click();
@@ -2549,43 +2662,21 @@
         if (result && result.success) {
           showToast(`Due date updated: ${result.newName}`, "success");
           closeUpdateDueDateModal();
-          await forceSync();
+          await silentRefresh();
         }
       }
 
       // ═══════════════════════════════════════════════════════
-      // ENHANCED UPLOAD — With optional due date
+      // FILE UPLOAD — due date is inline in the upload modal
       // ═══════════════════════════════════════════════════════
-      let pendingUploadFile = null; // The file awaiting due-date confirmation
-
-      function promptDueDateForUpload(file) {
-        pendingUploadFile = file;
-        document.getElementById("due-prompt-file-info").innerHTML =
-          `<i class="fa-solid fa-file mr-1 text-gray-500"></i> <strong class="text-white">${file.name}</strong>`;
-        document.getElementById("due-date-prompt-input").value = "";
-        document.getElementById("modal-upload-with-due").classList.remove("hidden-modal");
-      }
-
-      function closeUploadWithDueModal() {
-        document.getElementById("modal-upload-with-due").classList.add("hidden-modal");
-        pendingUploadFile = null;
-      }
-
-      async function submitUploadWithDueDate() {
-        if (!pendingUploadFile || !uploadTarget) return;
-        const dueDate = document.getElementById("due-date-prompt-input").value;
-        closeUploadWithDueModal();
-        await doActualUpload(pendingUploadFile, dueDate || null);
-      }
-
-      async function skipDueDateUpload() {
-        if (!pendingUploadFile || !uploadTarget) return;
-        closeUploadWithDueModal();
-        await doActualUpload(pendingUploadFile, null);
-      }
 
       async function doActualUpload(file, dueDate) {
+        if (!file || !uploadTarget) {
+          showToast("Upload cancelled: missing file or target.", "error");
+          return;
+        }
         const btn = document.getElementById("upload-submit-btn");
+        if (!btn) return;
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
 
@@ -2612,15 +2703,16 @@
           });
 
           if (result && result.success) {
-            showToast("File '" + uploadFileName + "' uploaded!", "success");
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Refreshing...';
             closeUploadModal();
-            await forceSync();
+            await silentRefresh();
+            showToast("File '" + uploadFileName + "' uploaded!", "success");
           } else {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
           }
         } catch (err) {
-          showToast("Upload failed: " + err.message, "error");
+          showToast("Upload failed: " + (err.message || String(err)), "error");
           btn.disabled = false;
           btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
         }

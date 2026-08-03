@@ -1,6 +1,6 @@
 // Family Digital Vault — Service Worker
 // Caches essential assets for offline/PWA support
-const CACHE_NAME = 'family-vault-v3';
+const CACHE_NAME = 'family-vault-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -35,7 +35,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// ── Fetch: Network-first for data, cache-first for assets ──
+// ── Fetch: Network-first for APIs, cache-first for assets ──
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -49,12 +49,13 @@ self.addEventListener('fetch', (event) => {
     return; // Let browser handle normally
   }
 
-  // Cache-first strategy for static assets
+  // For the app shell (HTML, JS inline in HTML, CSS, fonts):
+  // Stale-while-revalidate: serve from cache immediately, update cache in background
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetchPromise = fetch(event.request)
         .then((response) => {
-          if (response && response.status === 200) {
+          if (response && response.status === 200 && response.type === 'basic') {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, clone);
@@ -67,3 +68,4 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+

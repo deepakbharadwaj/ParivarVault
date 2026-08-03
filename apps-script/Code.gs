@@ -248,8 +248,6 @@ function getFilesInFolder(folder) {
 
 function doPost(e) {
   // ── Optional API Key check ──
-  // Set API_KEY in vault-config.json and the app sends it with every POST.
-  // If API_KEY is empty below, no auth check is performed.
   const API_KEY = ""; // Set a secret key here if you want extra security
   if (API_KEY && e.parameter.key !== API_KEY) {
     return jsonResponse({ success: false, error: "Unauthorized: invalid API key" });
@@ -263,7 +261,7 @@ function doPost(e) {
       case "deleteFolder":
         return jsonResponse(handleDeleteFolder(e.parameter));
       case "uploadFile":
-        return jsonResponse(handleUploadFile(e));
+        return jsonResponse(handleUploadFile(e.parameter));
       case "deleteFile":
         return jsonResponse(handleDeleteFile(e.parameter));
       case "renameItem":
@@ -361,27 +359,19 @@ function handleDeleteFolder(params) {
 
 /**
  * Upload a file to a specific sub-folder.
- * Accepts base64-encoded file data via POST body (JSON).
- * @param {Object} e - The full POST event object
+ * Accepts base64-encoded file data via URL-encoded POST params.
+ * @param {Object} params - e.parameter from doPost
  * 
- * Expected JSON body:
+ * Expected params:
  * { action: "uploadFile", parentType: "PEOPLE", folderName: "Dad",
  *   fileName: "doc.pdf", fileData: "<base64>", mimeType: "application/pdf" }
  */
-function handleUploadFile(e) {
-  // Read JSON body from postData
-  let payload;
-  try {
-    payload = JSON.parse(e.postData.contents);
-  } catch (err) {
-    return { success: false, error: "Invalid JSON body: " + err.toString() };
-  }
-
-  const parentType = payload.parentType;
-  const folderName = (payload.folderName || "").trim();
-  const fileName = (payload.fileName || "").trim();
-  const fileData = payload.fileData;
-  const mimeType = payload.mimeType || "application/octet-stream";
+function handleUploadFile(params) {
+  const parentType = params.parentType;
+  const folderName = (params.folderName || "").trim();
+  const fileName = (params.fileName || "").trim();
+  const fileData = params.fileData;
+  const mimeType = params.mimeType || "application/octet-stream";
 
   if (!parentType || !folderName || !fileName || !fileData) {
     return { success: false, error: "Missing required fields: parentType, folderName, fileName, fileData" };
