@@ -70,8 +70,8 @@
 
 ### Step 1: Clone this repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/family-digital-vault.git
-cd family-digital-vault
+git clone https://github.com/deepakbharadwaj/ParivarVault.git
+cd ParivarVault
 ```
 
 ### Step 2: Set up Google Drive folder structure
@@ -122,7 +122,7 @@ Then open **http://localhost:8080**
 ## 📁 Project Structure
 
 ```
-family-digital-vault/
+ParivarVault/
 ├── index.html                   # Main PWA app (single HTML file)
 ├── manifest.json                # PWA manifest for installable app
 ├── sw.js                        # Service Worker for offline support

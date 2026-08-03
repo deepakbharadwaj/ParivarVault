@@ -63,7 +63,7 @@ localStorage.removeItem("vault_cache_v3");
 
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, please email: **[your-email@example.com]** (replace with your email)
+Instead, please [open a private security advisory](https://github.com/deepakbharadwaj/ParivarVault/security/advisories/new) on GitHub.
 
 We will respond within 48 hours and work with you on a fix.
 

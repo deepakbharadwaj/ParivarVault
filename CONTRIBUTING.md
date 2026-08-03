@@ -1,8 +1,8 @@
-# Contributing to Family Digital Vault
+# Contributing to ParivarVault
 
 First off, thank you for considering contributing! 🎉
 
-Family Digital Vault is a community-driven project aimed at helping families (especially in India) manage their important documents digitally. Every contribution matters.
+ParivarVault is a community-driven project aimed at helping families (especially in India) manage their important documents and health records digitally. Every contribution matters.
 
 ---
 
@@ -15,7 +15,7 @@ This project adheres to the [Contributor Covenant Code of Conduct](https://www.c
 ## 🚀 How Can I Contribute?
 
 ### 🐛 Reporting Bugs
-1. Check if the bug is already reported in [Issues](https://github.com/YOUR_USERNAME/family-digital-vault/issues)
+1. Check if the bug is already reported in [Issues](https://github.com/deepakbharadwaj/ParivarVault/issues)
 2. If not, create a new issue with:
    - Clear title and description
    - Steps to reproduce
@@ -33,14 +33,14 @@ This project adheres to the [Contributor Covenant Code of Conduct](https://www.c
 1. **Fork** the repository
 2. **Clone** your fork:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/family-digital-vault.git
+   git clone https://github.com/YOUR_USERNAME/ParivarVault.git
    ```
 3. **Create a branch**:
    ```bash
    git checkout -b feature/your-feature-name
    ```
 4. **Make your changes**
-5. **Test thoroughly** — open `index.html` and test all views
+5. **Test thoroughly** — open `tests/test-runner.html` and verify all tests pass
 6. **Commit** with descriptive messages:
    ```bash
    git commit -m "feat: add dark/light theme toggle"
@@ -53,8 +53,8 @@ This project adheres to the [Contributor Covenant Code of Conduct](https://www.c
 
 ```bash
 # Clone
-git clone https://github.com/YOUR_USERNAME/family-digital-vault.git
-cd family-digital-vault
+git clone https://github.com/deepakbharadwaj/ParivarVault.git
+cd ParivarVault
 
 # Copy config template
 cp vault-config.example.json vault-config.json
@@ -65,6 +65,9 @@ python3 -m http.server 8080
 npx serve .
 
 # Open http://localhost:8080
+
+# Run tests (before any PR!)
+open tests/test-runner.html
 ```
 
 ---
@@ -72,16 +75,19 @@ npx serve .
 ## 📁 Code Structure
 
 ```
-index.html          # Single-file app. All HTML, CSS, JS in one file (by design — simplicity first)
+index.html          # Single-file PWA app. All HTML, CSS, JS in one file (simplicity first)
 ├── <style>         # Custom CSS + animations
-├── <body>          # HTML structure (sidebar, main content, modals)
+├── <body>          # HTML structure (sidebar, main content, modals, medical views)
 └── <script>        # Application logic
-    ├── Constants   # PERSON_DOC_TYPES, VEHICLE_DOC_TYPES, etc.
+    ├── I18N        # 11-language translation system
+    ├── Constants   # PERSON_DOC_TYPES, VEHICLE_DOC_TYPES, MEDICAL_KEYWORDS, etc.
     ├── State       # appState object
-    ├── Init        # initApp(), syncVaultData()
-    ├── Rendering   # renderAll(), renderDashboard(), renderMembersList(), etc.
+    ├── Init        # initApp(), syncVaultData(), mergeMedicalI18N()
+    ├── Rendering   # renderAll(), renderDashboard(), renderMedicalList(), etc.
+    ├── Medical     # Health vitals CRUD (localStorage), medical file detection
     ├── Navigation  # navigate(), showView(), openMemberDetail()
     ├── Preview     # previewFile(), closeModal(), downloadFile()
+    ├── WhatsApp    # shareViaWhatsApp()
     └── Search      # searchInput event listener
 ```
 
@@ -100,6 +106,7 @@ index.html          # Single-file app. All HTML, CSS, JS in one file (by design 
 ## ✅ PR Checklist
 
 - [ ] Code works when opening `index.html` directly in a browser
+- [ ] Run `tests/test-runner.html` — all tests pass ✅
 - [ ] No new CDN dependencies (or justified in PR description)
 - [ ] Tested on mobile and desktop
 - [ ] No `vault-config.json` or sensitive data committed
@@ -121,6 +128,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 | `refactor:` | Code restructuring |
 | `security:` | Security improvements |
 | `i18n:` | Internationalization |
+| `test:` | Adding or updating tests |
 
 Example: `feat: add emergency contact card section`
 
@@ -132,4 +140,4 @@ All contributors will be listed in the README. Significant contributors may be a
 
 ---
 
-**Thank you for making Family Digital Vault better for families everywhere!** 🇮🇳
+**Thank you for making ParivarVault better for families everywhere!** 🇮🇳

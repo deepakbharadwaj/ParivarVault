@@ -1687,16 +1687,154 @@
 
       function startDemoMode() {
         appState.isDemo = true;
+
+        // ── Rich Demo Data: 5 family members ────────────────
         appState.people = [
-          { name: "Dad", files: [] },
-          { name: "Mom", files: [] },
-          { name: "Child", files: [] }
+          {
+            name: "Rajesh Kumar",
+            files: [
+              { id: "demo-aadhaar-dad", name: "Aadhaar_Card_Rajesh.pdf", mimeType: "application/pdf", parentName: "Rajesh Kumar" },
+              { id: "demo-pan-dad", name: "PAN_Card_Rajesh.pdf", mimeType: "application/pdf", parentName: "Rajesh Kumar" },
+              { id: "demo-passport-dad", name: "Passport_Rajesh.jpg", mimeType: "image/jpeg", parentName: "Rajesh Kumar" },
+              { id: "demo-voter-dad", name: "Voter_ID_Rajesh.pdf", mimeType: "application/pdf", parentName: "Rajesh Kumar" },
+              { id: "demo-dl-dad", name: "Driving_Licence_Rajesh.pdf", mimeType: "application/pdf", parentName: "Rajesh Kumar" },
+              { id: "demo-cbc-dad", name: "CBC_Blood_Report_due_2026-09-15.pdf", mimeType: "application/pdf", parentName: "Rajesh Kumar" },
+              { id: "demo-lipid-dad", name: "Lipid_Profile_Thyrocare.pdf", mimeType: "application/pdf", parentName: "Rajesh Kumar" },
+              { id: "demo-sugar-dad", name: "Blood_Sugar_Fasting_Report.pdf", mimeType: "application/pdf", parentName: "Rajesh Kumar" },
+            ]
+          },
+          {
+            name: "Sunita Kumar",
+            files: [
+              { id: "demo-aadhaar-mom", name: "Aadhaar_Card_Sunita.pdf", mimeType: "application/pdf", parentName: "Sunita Kumar" },
+              { id: "demo-pan-mom", name: "PAN_Card_Sunita.pdf", mimeType: "application/pdf", parentName: "Sunita Kumar" },
+              { id: "demo-thyroid-mom", name: "Thyroid_Test_Report.pdf", mimeType: "application/pdf", parentName: "Sunita Kumar" },
+              { id: "demo-vitamin-mom", name: "Vitamin_D_B12_Report.pdf", mimeType: "application/pdf", parentName: "Sunita Kumar" },
+              { id: "demo-prescription-mom", name: "Prescription_Dr_Sharma_Aug2026.pdf", mimeType: "application/pdf", parentName: "Sunita Kumar" },
+            ]
+          },
+          {
+            name: "Aarav Kumar",
+            files: [
+              { id: "demo-aadhaar-son", name: "Aadhaar_Card_Aarav.pdf", mimeType: "application/pdf", parentName: "Aarav Kumar" },
+              { id: "demo-vaccine-son", name: "COVID_Vaccination_Certificate.pdf", mimeType: "application/pdf", parentName: "Aarav Kumar" },
+              { id: "demo-school-son", name: "School_Bonafide_Certificate.pdf", mimeType: "application/pdf", parentName: "Aarav Kumar" },
+            ]
+          },
+          {
+            name: "Ananya Kumar",
+            files: [
+              { id: "demo-aadhaar-daughter", name: "Aadhaar_Card_Ananya.pdf", mimeType: "application/pdf", parentName: "Ananya Kumar" },
+              { id: "demo-immunization-daughter", name: "Immunization_Record.pdf", mimeType: "application/pdf", parentName: "Ananya Kumar" },
+            ]
+          },
+          {
+            name: "Dadaji",
+            files: [
+              { id: "demo-aadhaar-grandpa", name: "Aadhaar_Card_Dadaji.pdf", mimeType: "application/pdf", parentName: "Dadaji" },
+              { id: "demo-bp-grandpa", name: "BP_Monitoring_Report.pdf", mimeType: "application/pdf", parentName: "Dadaji" },
+              { id: "demo-ecg-grandpa", name: "ECG_Report_due_2026-08-30.pdf", mimeType: "application/pdf", parentName: "Dadaji" },
+              { id: "demo-surgery-grandpa", name: "Knee_Surgery_Discharge_Summary.pdf", mimeType: "application/pdf", parentName: "Dadaji" },
+            ]
+          }
         ];
-        appState.vehicles = [{ name: "Car - KA01AB1234", files: [] }];
-        appState.properties = [{ name: "Our Home", files: [] }];
-        appState.shared = [];
+
+        // ── Vehicles ─────────────────────────────────────────
+        appState.vehicles = [
+          {
+            name: "Hyundai Creta — KA 01 AB 1234",
+            files: [
+              { id: "demo-rc-creta", name: "Registration_RC_Creta.pdf", mimeType: "application/pdf", parentName: "Hyundai Creta" },
+              { id: "demo-insurance-creta", name: "Insurance_Creta_due_2026-11-30.pdf", mimeType: "application/pdf", parentName: "Hyundai Creta" },
+              { id: "demo-puc-creta", name: "PUC_Certificate_due_2026-09-01.pdf", mimeType: "application/pdf", parentName: "Hyundai Creta" },
+            ]
+          },
+          {
+            name: "Honda Activa — KA 01 XY 5678",
+            files: [
+              { id: "demo-rc-activa", name: "RC_Activa.pdf", mimeType: "application/pdf", parentName: "Honda Activa" },
+              { id: "demo-insurance-activa", name: "Insurance_Activa_due_2027-03-15.pdf", mimeType: "application/pdf", parentName: "Honda Activa" },
+            ]
+          },
+        ];
+
+        // ── Properties ───────────────────────────────────────
+        appState.properties = [
+          {
+            name: "Flat 3B, Shanti Apartments, Bengaluru",
+            files: [
+              { id: "demo-sale-deed", name: "Sale_Deed_Flat_3B.pdf", mimeType: "application/pdf", parentName: "Flat 3B" },
+              { id: "demo-tax-flat", name: "Property_Tax_2026_due_2026-12-31.pdf", mimeType: "application/pdf", parentName: "Flat 3B" },
+            ]
+          },
+          {
+            name: "Ancestral Home — Bhadravathi",
+            files: [
+              { id: "demo-deed-ancestral", name: "Sale_Deed_Ancestral_Home.pdf", mimeType: "application/pdf", parentName: "Ancestral Home" },
+            ]
+          },
+        ];
+
+        // ── Shared Documents ─────────────────────────────────
+        appState.shared = [
+          { id: "demo-shared-insurance", name: "Family_Health_Insurance_Policy.pdf", mimeType: "application/pdf", parentName: "Shared Documents" },
+          { id: "demo-shared-tax", name: "ITR_Filing_2025-26_Acknowledgement.pdf", mimeType: "application/pdf", parentName: "Shared Documents" },
+          { id: "demo-shared-will", name: "Family_Will_Registered.pdf", mimeType: "application/pdf", parentName: "Shared Documents" },
+        ];
+
+        // ── Mock Bank Data ───────────────────────────────────
+        appState.bankData = [
+          {
+            person: "Rajesh Kumar",
+            banks: [
+              { bankName: "State Bank of India", accNumber: "XXXX XXXX 1234", ifsc: "SBIN0001234", branch: "MG Road, Bengaluru", "Primary Account Holder": "Rajesh Kumar" },
+              { bankName: "HDFC Bank", accNumber: "XXXX XXXX 5678", ifsc: "HDFC0005678", branch: "Koramangala, Bengaluru", "Primary Account Holder": "Rajesh Kumar" },
+            ]
+          },
+          {
+            person: "Sunita Kumar",
+            banks: [
+              { bankName: "ICICI Bank", accNumber: "XXXX XXXX 9012", ifsc: "ICIC0009012", branch: "Jayanagar, Bengaluru", "Primary Account Holder": "Sunita Kumar" },
+            ]
+          },
+          {
+            person: "Dadaji",
+            banks: [
+              { bankName: "Canara Bank", accNumber: "XXXX XXXX 3456", ifsc: "CNRB0003456", branch: "Bhadravathi Main", "Primary Account Holder": "Dadaji" },
+            ]
+          }
+        ];
+
+        // ── Build driveData from all files ───────────────────
         appState.driveData = [];
-        appState.renewals = [];
+        const addToDrive = (arr) => { if (arr) arr.forEach(f => { if (f) appState.driveData.push(f); }); };
+        appState.people.forEach(p => addToDrive(p.files));
+        appState.vehicles.forEach(v => addToDrive(v.files));
+        appState.properties.forEach(p => addToDrive(p.files));
+        addToDrive(appState.shared);
+
+        // ── Health vitals (demo data in localStorage) ────────
+        const demoVitals = {
+          "Rajesh Kumar": [
+            { date: "2026-07-15", bpSystolic: 128, bpDiastolic: 84, sugarFasting: 102, weight: 76, height: 172, heartRate: 74, notes: "Morning fasting" },
+            { date: "2026-04-10", bpSystolic: 132, bpDiastolic: 86, sugarFasting: 108, weight: 78, height: 172, heartRate: 76, notes: "After walk" },
+          ],
+          "Sunita Kumar": [
+            { date: "2026-07-20", bpSystolic: 118, bpDiastolic: 76, sugarFasting: 92, weight: 62, height: 160, heartRate: 70, notes: "Fasting" },
+          ],
+          "Dadaji": [
+            { date: "2026-08-01", bpSystolic: 145, bpDiastolic: 90, sugarFasting: 130, weight: 68, height: 165, heartRate: 78, notes: "After breakfast" },
+            { date: "2026-06-15", bpSystolic: 150, bpDiastolic: 92, sugarFasting: 140, weight: 69, height: 165, heartRate: 80, notes: "Evening reading" },
+          ],
+          "Aarav Kumar": [
+            { date: "2026-06-01", bpSystolic: 110, bpDiastolic: 70, sugarFasting: 88, weight: 45, height: 148, heartRate: 72, notes: "Annual checkup" },
+          ],
+        };
+        localStorage.setItem("vault_health_vitals", JSON.stringify(demoVitals));
+
+        // ── Remove cached real data ──────────────────────────
+        localStorage.removeItem("vault_cache_v3");
+
         processRenewals();
         renderAll();
         navigate("home");
