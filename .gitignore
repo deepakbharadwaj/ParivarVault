@@ -1,0 +1,65 @@
+# ──────────────────────────────────────────────
+# Family Digital Vault — .gitignore
+# Prevents accidental commit of sensitive data
+# ──────────────────────────────────────────────
+
+# === CRITICAL: Configuration files with secrets ===
+vault-config.json
+config.json
+*.local.json
+
+# === Environment files ===
+.env
+.env.local
+.env.*.local
+
+# === Google credentials / service account keys ===
+*.service-account.json
+credentials.json
+client_secret*.json
+google-credentials.json
+
+# === OS generated files ===
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# === IDE & Editor ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# === Node (if you add build tooling later) ===
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# === Build artifacts ===
+dist/
+build/
+*.bundle.js
+
+# === Logs ===
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === Cache ===
+.cache/
+*.cache
+
+# === Temporary files ===
+tmp/
+temp/
+*.tmp

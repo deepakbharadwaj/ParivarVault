@@ -1,0 +1,2273 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Family Digital Vault</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Family Vault" />
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="description" content="Self-hosted family document manager — organize Aadhaar, PAN, vehicle papers, property deeds, and track renewals from your own Google Drive." />
+    <meta name="robots" content="noindex, nofollow" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              glass: {
+                100: "rgba(255, 255, 255, 0.05)",
+                200: "rgba(255, 255, 255, 0.1)",
+                300: "rgba(255, 255, 255, 0.2)",
+              },
+              vault: {
+                dark: "#0f172a",
+                panel: "rgba(30, 41, 59, 0.7)",
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- Custom Styles -->
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #0f172a;
+        color: #f8fafc;
+        overflow: hidden;
+        overscroll-behavior-y: none;
+      }
+
+      .glass-panel {
+        background: rgba(30, 41, 59, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .glass-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+      }
+
+      .glass-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .glass-button {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+
+      .glass-button:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .glass-button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
+      ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+      /* Background Animated Blobs */
+      .blob {
+        position: absolute;
+        filter: blur(80px);
+        z-index: -1;
+        opacity: 0.4;
+        border-radius: 50%;
+        animation: move 15s infinite alternate;
+        will-change: transform;
+      }
+      .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #3b82f6; }
+      .blob-2 { bottom: -10%; right: -10%; width: 600px; height: 600px; background: #8b5cf6; animation-delay: 2s; }
+      .blob-3 { top: 40%; left: 40%; width: 400px; height: 400px; background: #06b6d4; animation-delay: 4s; }
+
+      @media (max-width: 768px) {
+        .blob {
+          animation: none !important;
+          filter: blur(40px) !important;
+          opacity: 0.2 !important;
+        }
+        .glass-panel, .glass-card {
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+        }
+      }
+
+      /* Animations */
+      .fade-in { animation: fadeIn 0.4s ease forwards; }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .pulse-alert { animation: pulseAlert 2s infinite; }
+      @keyframes pulseAlert {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+      }
+
+      /* Loader */
+      .loader {
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        border-top: 3px solid #3b82f6;
+        width: 32px;
+        height: 32px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      
+      .bank-card {
+          background: linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+      }
+
+      /* Toast Notifications */
+      .toast-container {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+        pointer-events: none;
+      }
+      .toast {
+        pointer-events: auto;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.75rem;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.1);
+        font-size: 0.8rem;
+        min-width: 260px;
+        max-width: 380px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        animation: slideInRight 0.3s ease forwards;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .toast.toast-out { animation: slideOutRight 0.3s ease forwards; }
+      .toast-success { background: rgba(16,185,129,0.9); color: #fff; }
+      .toast-error { background: rgba(239,68,68,0.9); color: #fff; }
+      .toast-info { background: rgba(59,130,246,0.9); color: #fff; }
+      @keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+
+      /* Generic Modal Overlay */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        z-index: 250;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+      .modal-overlay.hidden-modal { display: none; }
+
+      .modal-dialog {
+        background: rgba(15,23,42,0.95);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        width: 100%;
+        max-width: 440px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        animation: fadeIn 0.25s ease forwards;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      .modal-input {
+        width: 100%;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 0.75rem;
+        padding: 0.65rem 1rem;
+        color: #f8fafc;
+        font-size: 0.875rem;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .modal-input:focus { border-color: rgba(59,130,246,0.5); }
+      .modal-input::placeholder { color: rgba(255,255,255,0.3); }
+
+      /* File Drop Zone */
+      .drop-zone {
+        border: 2px dashed rgba(255,255,255,0.15);
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        background: rgba(255,255,255,0.02);
+      }
+      .drop-zone:hover, .drop-zone.drag-over {
+        border-color: rgba(59,130,246,0.6);
+        background: rgba(59,130,246,0.08);
+      }
+      .drop-zone i { font-size: 2rem; color: rgba(255,255,255,0.25); margin-bottom: 0.5rem; display: block; }
+    </style>
+  </head>
+  <body class="flex flex-col lg:flex-row h-[100dvh] w-screen selection:bg-blue-500/30 text-sm md:text-base">
+    
+    <div id="loading-state" class="fixed inset-0 flex flex-col items-center justify-center bg-[#0f172a] z-[999] transition-opacity duration-300">
+      <div class="loader mb-6"></div>
+      <h2 class="text-xl md:text-2xl font-semibold text-white animate-pulse" data-i18n="loading.title">Syncing Digital Vault...</h2>
+      <p class="text-gray-400 mt-2 text-sm" data-i18n="loading.subtitle">Fetching latest documents &amp; analyzing renewals</p>
+    </div>
+
+    <!-- Background Effects -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <aside class="glass-panel w-full lg:w-64 h-auto lg:h-full flex flex-row lg:flex-col justify-between shrink-0 transition-all duration-300 border-t lg:border-t-0 lg:border-r border-white/10 z-20 order-2 lg:order-1 relative lg:static bottom-0 pb-safe">
+      <div class="flex flex-row lg:flex-col w-full overflow-x-auto lg:overflow-visible no-scrollbar">
+        <!-- Brand / Logo -->
+        <div class="hidden lg:flex h-20 items-center justify-center lg:justify-start lg:px-6 border-b border-white/10 w-full shrink-0">
+          <i class="fa-solid fa-shield-halved text-2xl text-blue-400"></i>
+          <span class="ml-3 text-lg font-semibold tracking-wide" data-i18n="app.name">Family Vault</span>
+        </div>
+        
+        <!-- Navigation Links -->
+        <nav class="flex flex-row lg:flex-col w-full p-2 lg:p-4 space-x-1 lg:space-x-0 lg:space-y-2 justify-around lg:justify-start min-w-max lg:min-w-0">
+          <button onclick="navigate('home')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="home">
+            <i class="fa-solid fa-chart-pie text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
+            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.dashboard">Dashboard</span>
+          </button>
+          <button onclick="navigate('members')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="members">
+            <i class="fa-solid fa-users text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
+            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.members">Members</span>
+          </button>
+          <button onclick="navigate('vehicles')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="vehicles">
+            <i class="fa-solid fa-car text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
+            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.vehicles">Vehicles</span>
+          </button>
+          <button onclick="navigate('properties')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="properties">
+            <i class="fa-solid fa-house text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
+            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.properties">Properties</span>
+          </button>
+          <button onclick="navigate('renewals')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all relative" data-target="renewals">
+            <i class="fa-solid fa-calendar-check text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
+            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.renewals">Renewals</span>
+            <div id="nav-renewal-badge" class="absolute top-1 lg:top-3 right-2 lg:right-3 w-2 h-2 rounded-full bg-red-500 hidden pulse-alert"></div>
+          </button>
+          <button onclick="navigate('shared')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="shared">
+            <i class="fa-solid fa-folder-open text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
+            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.shared">Shared</span>
+          </button>
+          <button onclick="navigate('medical')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="medical">
+            <i class="fa-solid fa-heart-pulse text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
+            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.medical">Medical</span>
+          </button>
+        </nav>
+      </div>
+      <div class="hidden lg:block p-4 border-t border-white/10 text-center lg:text-left text-xs text-gray-500">
+        <span class="inline" data-i18n="app.footer">Secured by Cloudflare</span>
+      </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full relative z-10 order-1 lg:order-2 overflow-hidden">
+      <header class="glass-panel h-16 lg:h-20 px-4 lg:px-6 flex items-center justify-between border-b border-white/10 shrink-0 z-30">
+        <h1 id="page-title" class="text-lg lg:text-xl font-medium text-white/90 truncate mr-4" data-i18n="page.dashboard">Dashboard</h1>
+
+        <div class="flex items-center relative">
+            <!-- Search Bar -->
+            <div class="relative w-44 sm:w-64 lg:w-96">
+                <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="searchInput" data-i18n-placeholder="search.placeholder" placeholder="Search..." class="w-full bg-[#1e293b] lg:bg-white/5 border border-white/10 rounded-full py-2 pl-10 lg:pl-12 pr-4 text-xs lg:text-sm text-white focus:outline-none focus:border-blue-400/50 transition-all placeholder-gray-400" />
+                <div id="searchResults" class="absolute top-full right-0 lg:left-0 mt-2 w-[280px] sm:w-full lg:w-full bg-[#0f172a]/95 backdrop-blur-2xl border border-white/20 rounded-xl hidden max-h-[60vh] overflow-y-auto z-[100] shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+                </div>
+            </div>
+
+    <!-- Language Selector -->
+            <div class="relative ml-2">
+                <button onclick="toggleLangMenu()" class="glass-button w-10 h-10 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-colors" title="Change Language">
+                    <i class="fa-solid fa-language"></i>
+                </button>
+                <div id="lang-menu" class="absolute top-full right-0 mt-2 w-48 bg-[#0f172a]/95 backdrop-blur-2xl border border-white/20 rounded-xl hidden z-[110] shadow-[0_10px_40px_rgba(0,0,0,0.5)] max-h-[60vh] overflow-y-auto">
+                </div>
+            </div>
+
+            <!-- Force Sync Button -->
+            <button onclick="forceSync()" class="ml-2 lg:ml-4 glass-button w-10 h-10 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-colors" title="Force Sync">
+                <i id="sync-icon" class="fa-solid fa-rotate"></i>
+            </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Content Area -->
+      <div id="content-area" class="flex-1 overflow-y-auto p-4 lg:p-10 relative">
+
+        <div id="view-home" class="view-section hidden space-y-6 lg:space-y-8">
+          
+          <!-- Dynamic Alert Banner Container -->
+          <div id="dashboard-alerts" class="w-full space-y-3"></div>
+
+          <!-- Stats Row -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            <div class="glass-card p-4 lg:p-6 rounded-2xl flex items-center justify-between">
+              <div>
+                <p class="text-gray-400 text-xs lg:text-sm mb-1" data-i18n="stats.people">Total People</p>
+                <h3 id="stat-people" class="text-2xl lg:text-3xl font-semibold">0</h3>
+              </div>
+              <div class="h-10 w-10 lg:h-12 lg:w-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0"><i class="fa-solid fa-user lg:text-xl"></i></div>
+            </div>
+            <div class="glass-card p-4 lg:p-6 rounded-2xl flex items-center justify-between">
+              <div>
+                <p class="text-gray-400 text-xs lg:text-sm mb-1" data-i18n="stats.vehicles">Vehicles</p>
+                <h3 id="stat-vehicles" class="text-2xl lg:text-3xl font-semibold">0</h3>
+              </div>
+              <div class="h-10 w-10 lg:h-12 lg:w-12 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0"><i class="fa-solid fa-car lg:text-xl"></i></div>
+            </div>
+            <div class="glass-card p-4 lg:p-6 rounded-2xl flex items-center justify-between">
+              <div>
+                <p class="text-gray-400 text-xs lg:text-sm mb-1" data-i18n="stats.documents">Documents</p>
+                <h3 id="stat-docs" class="text-2xl lg:text-3xl font-semibold">0</h3>
+              </div>
+              <div class="h-10 w-10 lg:h-12 lg:w-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 shrink-0"><i class="fa-solid fa-file-lines lg:text-xl"></i></div>
+            </div>
+            <div class="glass-card p-4 lg:p-6 rounded-2xl flex items-center justify-between">
+              <div>
+                <p class="text-gray-400 text-xs lg:text-sm mb-1" data-i18n="stats.renewals">Pending Renewals</p>
+                <h3 id="stat-renewals" class="text-2xl lg:text-3xl font-semibold text-amber-400">0</h3>
+              </div>
+              <div class="h-10 w-10 lg:h-12 lg:w-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0"><i class="fa-solid fa-calendar-xmark lg:text-xl"></i></div>
+            </div>
+          </div>
+
+          <!-- Quick Overview -->
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+            <div class="glass-panel p-4 lg:p-6 rounded-2xl">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-base lg:text-lg font-medium" data-i18n="home.members">Family Members</h2>
+                <button onclick="navigate('members')" class="text-xs lg:text-sm text-blue-400 hover:text-blue-300" data-i18n="home.viewAll">View All</button>
+              </div>
+              <div id="home-members-list" class="space-y-3"></div>
+            </div>
+
+            <div class="glass-panel p-4 lg:p-6 rounded-2xl">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-base lg:text-lg font-medium" data-i18n="home.garage">Garage Overview</h2>
+                <button onclick="navigate('vehicles')" class="text-xs lg:text-sm text-blue-400 hover:text-blue-300" data-i18n="home.viewAll">View All</button>
+              </div>
+              <div id="home-vehicles-list" class="space-y-3"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-members" class="view-section hidden">
+          <div id="members-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6"></div>
+        </div>
+
+        <div id="view-member-detail" class="view-section hidden">
+          <button onclick="navigate('members')" class="text-gray-400 hover:text-white mb-4 lg:mb-6 flex items-center transition-colors text-sm lg:text-base">
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span data-i18n="detail.back">Back to Members</span>
+          </button>
+          
+          <div class="flex items-center justify-between mb-6 lg:mb-8 bg-black/20 p-4 lg:p-6 rounded-2xl border border-white/5">
+            <div class="flex items-center">
+              <div id="detail-photo-container"></div>
+              <div class="ml-4 lg:ml-6">
+                <h2 id="detail-name" class="text-2xl lg:text-3xl font-semibold">Name</h2>
+                <p class="text-xs lg:text-sm text-gray-400 mt-1" data-i18n="detail.personalProfile">Personal Profile</p>
+              </div>
+            </div>
+            <div class="flex space-x-2">
+              <button id="detail-upload-btn" onclick="" class="glass-button px-3 py-2 rounded-lg text-xs flex items-center text-blue-400 hover:text-blue-300">
+                <i class="fa-solid fa-cloud-arrow-up mr-1 lg:mr-2"></i> <span class="hidden sm:inline" data-i18n="actions.uploadDoc">Upload Doc</span>
+              </button>
+              <button id="detail-delete-btn" onclick="" class="glass-button px-3 py-2 rounded-lg text-xs flex items-center text-red-400 hover:text-red-300">
+                <i class="fa-solid fa-trash mr-1 lg:mr-2"></i> <span class="hidden sm:inline" data-i18n="actions.deleteMember">Delete</span>
+              </button>
+            </div>
+          </div>
+          
+          <div id="detail-docs-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6"></div>
+          
+          <!-- Bank Accounts Container -->
+          <div id="detail-banks-container" class="mt-8 border-t border-white/10 pt-8 hidden">
+              <div class="flex items-center mb-6">
+                  <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 mr-3">
+                      <i class="fa-solid fa-building-columns"></i>
+                  </div>
+                  <div>
+                      <h3 class="text-lg lg:text-xl font-medium" data-i18n="banks.title">Bank Accounts</h3>
+                      <p class="text-xs text-gray-400" data-i18n="banks.subtitle">Manage financial records safely</p>
+                  </div>
+              </div>
+              <div id="detail-banks-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6"></div>
+          </div>
+
+          <!-- Other Documents -->
+          <div id="detail-other-docs-container" class="mt-8 border-t border-white/10 pt-8 hidden">
+              <h3 class="text-lg lg:text-xl font-medium mb-6" data-i18n="detail.otherDocs">Other Documents</h3>
+              <div id="detail-other-docs-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6"></div>
+          </div>
+        </div>
+
+        <div id="view-vehicles" class="view-section hidden">
+          <div id="vehicles-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6"></div>
+        </div>
+
+        <div id="view-properties" class="view-section hidden">
+          <div id="properties-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6"></div>
+        </div>
+
+        <div id="view-renewals" class="view-section hidden">
+            <div class="glass-panel p-4 lg:p-8 rounded-2xl">
+                <div class="flex items-center justify-between mb-6 lg:mb-8 border-b border-white/10 pb-4">
+                    <div>
+                        <h2 class="text-xl lg:text-2xl font-medium text-white" data-i18n="renewals.title">Upcoming Renewals</h2>
+                        <p class="text-xs lg:text-sm text-gray-400 mt-1" data-i18n="renewals.subtitle">Files tracked via "_due_YYYY-MM-DD" naming convention.</p>
+                    </div>
+                    <i class="fa-solid fa-calendar-check text-3xl lg:text-4xl text-gray-600"></i>
+                </div>
+                
+                <div id="renewals-list" class="space-y-3">
+                    <!-- Dynamic Renewals populated here -->
+                </div>
+            </div>
+        </div>
+
+        <div id="view-shared" class="view-section hidden">
+          <div class="glass-panel p-6 rounded-2xl text-center py-10 lg:py-20">
+            <i class="fa-regular fa-folder-open text-4xl lg:text-6xl text-gray-500 mb-4"></i>
+            <h3 class="text-lg lg:text-xl font-medium text-white mb-2" data-i18n="shared.title">Shared Documents</h3>
+            <p class="text-xs lg:text-sm text-gray-400 px-4" data-i18n="shared.subtitle">Documents placed in the root "Shared_Documents" folder appear here.</p>
+            <div id="shared-list" class="mt-8 text-left max-w-3xl mx-auto space-y-3"></div>
+          </div>
+        </div>
+
+        <!-- Medical View -->
+        <div id="view-medical" class="view-section hidden">
+          <div id="medical-members-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 mb-8"></div>
+          
+          <!-- Medical Detail for selected member -->
+          <div id="medical-detail" class="hidden">
+            <button onclick="closeMedicalDetail()" class="text-gray-400 hover:text-white mb-4 lg:mb-6 flex items-center transition-colors text-sm lg:text-base">
+              <i class="fa-solid fa-arrow-left mr-2"></i> <span data-i18n="medical.back">Back to Health Records</span>
+            </button>
+
+            <!-- Vitals Summary Cards -->
+            <div class="mb-6 lg:mb-8">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h2 id="medical-member-name" class="text-xl lg:text-2xl font-semibold text-white">Member Name</h2>
+                  <p class="text-xs text-gray-400 mt-1" data-i18n="medical.vitalsSubtitle">Latest health vitals</p>
+                </div>
+                <button onclick="showAddVitalsForm()" class="glass-button px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm flex items-center text-blue-400 hover:text-blue-300">
+                  <i class="fa-solid fa-plus mr-1 lg:mr-2"></i> <span data-i18n="medical.addReading">Add Reading</span>
+                </button>
+              </div>
+              <div id="medical-vitals-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4"></div>
+            </div>
+
+            <!-- Add Vitals Form (hidden by default) -->
+            <div id="add-vitals-form" class="glass-panel p-4 lg:p-6 rounded-2xl mb-6 lg:mb-8 hidden">
+              <h3 class="text-base lg:text-lg font-medium mb-4" data-i18n="medical.newReading">New Health Reading</h3>
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-4">
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">BP Systolic</label>
+                  <input id="vital-bp-sys" type="number" placeholder="120" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">BP Diastolic</label>
+                  <input id="vital-bp-dia" type="number" placeholder="80" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1" data-i18n="medical.sugarFasting">Sugar (Fasting)</label>
+                  <input id="vital-sugar" type="number" placeholder="95" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1" data-i18n="medical.weight">Weight (kg)</label>
+                  <input id="vital-weight" type="number" step="0.1" placeholder="70" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1" data-i18n="medical.height">Height (cm)</label>
+                  <input id="vital-height" type="number" step="0.1" placeholder="170" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1" data-i18n="medical.heartRate">Heart Rate</label>
+                  <input id="vital-hr" type="number" placeholder="72" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1" data-i18n="medical.date">Date</label>
+                  <input id="vital-date" type="date" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1" data-i18n="medical.notes">Notes</label>
+                  <input id="vital-notes" type="text" placeholder="Fasting / After meal" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+              </div>
+              <div class="flex space-x-3">
+                <button onclick="saveVitalsReading()" class="glass-button px-4 py-2 rounded-lg text-sm bg-blue-600 hover:bg-blue-500 text-white"><i class="fa-solid fa-save mr-2"></i> <span data-i18n="medical.save">Save Reading</span></button>
+                <button onclick="hideAddVitalsForm()" class="glass-button px-4 py-2 rounded-lg text-sm text-gray-400"><span data-i18n="medical.cancel">Cancel</span></button>
+              </div>
+            </div>
+
+            <!-- Vitals History Table -->
+            <div class="glass-panel p-4 lg:p-6 rounded-2xl mb-6 lg:mb-8">
+              <h3 class="text-base lg:text-lg font-medium mb-4" data-i18n="medical.history">Vitals History</h3>
+              <div class="overflow-x-auto">
+                <table class="w-full text-xs lg:text-sm">
+                  <thead>
+                    <tr class="text-gray-400 border-b border-white/10">
+                      <th class="p-2 text-left" data-i18n="medical.date">Date</th>
+                      <th class="p-2 text-center">BP</th>
+                      <th class="p-2 text-center" data-i18n="medical.sugar">Sugar</th>
+                      <th class="p-2 text-center" data-i18n="medical.weight">Wt (kg)</th>
+                      <th class="p-2 text-center">BMI</th>
+                      <th class="p-2 text-center" data-i18n="medical.hr">HR</th>
+                      <th class="p-2 text-left hidden lg:table-cell" data-i18n="medical.notes">Notes</th>
+                      <th class="p-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="medical-vitals-table"></tbody>
+                </table>
+              </div>
+              <div id="medical-vitals-empty" class="text-center py-6 text-gray-500 text-sm hidden">
+                <i class="fa-solid fa-heart-circle-plus text-3xl mb-2 block opacity-50"></i>
+                <span data-i18n="medical.noVitals">No vitals recorded yet. Add your first reading!</span>
+              </div>
+            </div>
+
+            <!-- Medical Documents from Drive -->
+            <div class="glass-panel p-4 lg:p-6 rounded-2xl">
+              <h3 class="text-base lg:text-lg font-medium mb-4" data-i18n="medical.documents">Medical Documents</h3>
+              <div id="medical-docs-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-4"></div>
+              <div id="medical-docs-empty" class="text-center py-6 text-gray-500 text-sm hidden">
+                <i class="fa-solid fa-file-medical text-3xl mb-2 block opacity-50"></i>
+                <span data-i18n="medical.noDocs">No medical documents found. Upload lab reports, prescriptions, or vaccination records with medical keywords in filenames.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Setup View -->
+        <div id="view-setup" class="view-section hidden flex-col items-center justify-center h-full text-center max-w-2xl mx-auto">
+          <i class="fa-solid fa-gear text-5xl lg:text-6xl text-blue-400 mb-6"></i>
+          <h2 class="text-xl lg:text-2xl font-semibold mb-4" data-i18n="setup.title">Configuration Required</h2>
+          <p class="text-sm lg:text-base text-gray-400 mb-6 px-6" data-i18n="setup.subtitle">The application could not find <code>vault-config.json</code> in the root directory.</p>
+          <button onclick="startDemoMode()" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30">
+            <i class="fa-solid fa-play mr-2"></i> <span data-i18n="setup.demo">Launch Demo Mode</span>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Document Preview Modal -->
+    <div id="preview-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[200] hidden flex-col items-center justify-center p-2 lg:p-8 opacity-0 transition-opacity duration-300">
+      <div class="w-full max-w-6xl flex justify-between items-center mb-3 px-1 lg:px-0 mt-4 lg:mt-0">
+        <h3 id="modal-title" class="text-sm lg:text-xl font-medium text-white truncate pr-4" data-i18n="modal.title">Document Preview</h3>
+        <div class="flex space-x-2 lg:space-x-4 shrink-0">
+          <a id="modal-download-btn" href="#" target="_blank" class="glass-button px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm flex items-center">
+            <i class="fa-solid fa-download lg:mr-2"></i> <span class="hidden lg:inline" data-i18n="modal.download">Download</span>
+          </a>
+          <button onclick="closeModal()" class="glass-button w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-white hover:text-red-400">
+            <i class="fa-solid fa-xmark text-lg lg:text-xl"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="w-full h-[80dvh] lg:h-[85vh] bg-[#0f172a] rounded-xl lg:rounded-2xl overflow-hidden relative flex items-center justify-center border border-white/20 shadow-2xl">
+        <div id="modal-loader" class="absolute loader z-10"></div>
+        <div id="modal-content-container" class="w-full h-full relative z-20 flex items-center justify-center"></div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- ─── Add Member Modal ─── -->
+    <div id="modal-add-member" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeAddMemberModal()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-user-plus text-blue-400 mr-2"></i><span data-i18n="modal.addMember">Add Family Member</span></h3>
+          <button onclick="closeAddMemberModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="modal.memberName">Full Name</label>
+            <input id="new-member-name" type="text" class="modal-input" placeholder="e.g. Dad" />
+          </div>
+          <button onclick="submitAddMember()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors flex items-center justify-center">
+            <i class="fa-solid fa-plus mr-2"></i> <span data-i18n="modal.createMember">Create Member</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Add Vehicle Modal ─── -->
+    <div id="modal-add-vehicle" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeAddVehicleModal()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-car-side text-purple-400 mr-2"></i><span data-i18n="modal.addVehicle">Add Vehicle</span></h3>
+          <button onclick="closeAddVehicleModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="modal.vehicleName">Vehicle Name</label>
+            <input id="new-vehicle-name" type="text" class="modal-input" placeholder="e.g. Car-KA01AB1234" />
+          </div>
+          <button onclick="submitAddVehicle()" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors flex items-center justify-center">
+            <i class="fa-solid fa-plus mr-2"></i> <span data-i18n="modal.createVehicle">Add Vehicle</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Upload File Modal ─── -->
+    <div id="modal-upload-file" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeUploadModal()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-cloud-arrow-up text-green-400 mr-2"></i><span data-i18n="modal.uploadFile">Upload Document</span></h3>
+          <button onclick="closeUploadModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        <div id="upload-target-info" class="text-xs text-gray-400 mb-4 bg-white/5 rounded-lg p-3"></div>
+        <div id="upload-drop-zone" class="drop-zone mb-4" onclick="document.getElementById('upload-file-input').click()">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <p class="text-sm text-gray-300"><span data-i18n="modal.dropHint">Click or drag & drop a file here</span></p>
+          <p class="text-[10px] text-gray-500 mt-1" data-i18n="modal.sizeLimit">Max ~5 MB per file</p>
+        </div>
+        <input type="file" id="upload-file-input" class="hidden" onchange="onFileSelected(this)" />
+        <div id="upload-file-preview" class="hidden mb-4 p-3 bg-white/5 rounded-lg flex items-center justify-between">
+          <div class="flex items-center overflow-hidden">
+            <i id="upload-file-icon" class="fa-solid fa-file text-gray-400 mr-2"></i>
+            <span id="upload-file-name" class="text-sm text-gray-200 truncate"></span>
+          </div>
+          <button onclick="clearFileSelection()" class="text-red-400 hover:text-red-300 text-sm"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="flex space-x-3">
+          <button id="upload-submit-btn" onclick="submitFileUpload()" disabled class="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white font-medium transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed">
+            <i class="fa-solid fa-upload mr-2"></i> <span data-i18n="modal.upload">Upload</span>
+          </button>
+          <button onclick="closeUploadModal()" class="glass-button px-4 py-2.5 rounded-xl text-sm text-gray-400" data-i18n="modal.cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Confirm Delete Modal ─── -->
+    <div id="modal-confirm-delete" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeConfirmModal()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="text-center">
+          <div class="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 mx-auto mb-4">
+            <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2" data-i18n="modal.confirmDelete">Confirm Delete</h3>
+          <p id="confirm-delete-message" class="text-sm text-gray-400 mb-6" data-i18n="modal.deleteWarning">This action moves the item to trash. You can recover it from Google Drive trash.</p>
+          <div class="flex space-x-3">
+            <button id="confirm-delete-btn" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-medium transition-colors">
+              <i class="fa-solid fa-trash mr-2"></i> <span data-i18n="modal.delete">Delete</span>
+            </button>
+            <button onclick="closeConfirmModal()" class="flex-1 py-2.5 rounded-xl glass-button text-sm text-gray-300" data-i18n="modal.cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Add Property Modal ─── -->
+    <div id="modal-add-property" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeAddPropertyModal()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-house-circle-plus text-emerald-400 mr-2"></i><span data-i18n="modal.addProperty">Add Property</span></h3>
+          <button onclick="closeAddPropertyModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="modal.propertyName">Property Name</label>
+            <input id="new-property-name" type="text" class="modal-input" placeholder="e.g. Our-Home" />
+          </div>
+          <button onclick="submitAddProperty()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors flex items-center justify-center">
+            <i class="fa-solid fa-plus mr-2"></i> <span data-i18n="modal.createProperty">Add Property</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ═══════════════════════════════════════════════════════
+      // I18N — Multi-Language Translation System
+      // Top 10 Indian languages + English (11 total)
+      // Community contributors: add your language below!
+      // ═══════════════════════════════════════════════════════
+      const I18N = {
+        en: {
+          app: { name: "Family Vault", footer: "Secured by Cloudflare" },
+          loading: { title: "Syncing Digital Vault...", subtitle: "Fetching latest documents & analyzing renewals" },
+          nav: { dashboard: "Dashboard", members: "Members", vehicles: "Vehicles", properties: "Properties", renewals: "Renewals", shared: "Shared" },
+          page: { dashboard: "Dashboard", members: "Family Members", vehicles: "Vehicles", properties: "Properties", renewals: "Renewal Tracking", shared: "Shared Documents" },
+          search: { placeholder: "Search documents...", noResults: "No documents found." },
+          stats: { people: "Total People", vehicles: "Vehicles", documents: "Documents", renewals: "Pending Renewals" },
+          home: { members: "Family Members", garage: "Garage Overview", viewAll: "View All", noMembers: "No members found.", noVehicles: "No vehicles found." },
+          detail: { back: "Back to Members", personalProfile: "Personal Profile", vault: "'s Vault", docsManaged: "Documents managed", noDocs: "No standard identity documents found.", otherDocs: "Other Documents" },
+          banks: { title: "Bank Accounts", subtitle: "Manage financial records safely", holder: "Holder", accNo: "Acc No", ifsc: "IFSC", copyAll: "Copy All", copied: "Copied!" },
+          docCards: { pdfView: "PDF View", imgView: "Image View", preview: "Preview", download: "Download", viewDetails: "View details", noDocsFound: "No documents found.", noProperties: 'No properties found. Create a "Properties" folder in Google Drive.' },
+          renewals: { title: "Upcoming Renewals", subtitle: 'Files tracked via "_due_YYYY-MM-DD" naming convention.', expired: "Expired", daysAgo: "days ago", dueIn: "Due in", days: "days", noRenewals: "No pending renewals found.", noRenewalsHint: 'Add "_due_YYYY-MM-DD" to filenames to track them here.', due: "Due:", unknownOwner: "Unknown Owner", shared: "Shared" },
+          shared: { title: "Shared Documents", subtitle: 'Documents placed in the root "Shared_Documents" folder appear here.', noShared: "No shared documents found." },
+          setup: { title: "Configuration Required", subtitle: "The application could not find vault-config.json in the root directory.", demo: "Launch Demo Mode" },
+          modal: { title: "Document Preview", download: "Download" },
+          demo: { preview: "Demo Mode: Preview requires real Google Drive integration.", download: "Demo Mode: Download requires real Google Drive integration." },
+          sync: { failed: "Failed to sync data. Ensure Apps Script is updated and deployed correctly." },
+          share: { title: "Share via WhatsApp", text: "Check out this document from our Family Vault:\n" },
+          docs: "Docs",
+          modal: {
+            addMember: "Add Family Member", memberName: "Full Name", createMember: "Create Member",
+            addVehicle: "Add Vehicle", vehicleName: "Vehicle Name", createVehicle: "Add Vehicle",
+            addProperty: "Add Property", propertyName: "Property Name", createProperty: "Add Property",
+            uploadFile: "Upload Document", dropHint: "Click or drag & drop a file here",
+            sizeLimit: "Max ~5 MB per file", upload: "Upload", cancel: "Cancel",
+            confirmDelete: "Confirm Delete", delete: "Delete",
+            deleteWarning: "This action moves the item to trash. You can recover it from Google Drive trash.",
+            deleteFolderWarning: "Are you sure you want to delete ", deleteFileWarning: "Are you sure you want to delete ",
+            trashRecoverable: "Items go to Google Drive trash — recoverable within 30 days."
+          },
+          actions: {
+            addMember: "Add Member", addVehicle: "Add Vehicle", addProperty: "Add Property",
+            uploadDoc: "Upload Document", deleteMember: "Delete"
+          },
+          docTypes: {
+            aadhaar: "Aadhaar Card", pan: "PAN Card", passport: "Passport", driving_licence: "Driving Licence", voter: "Voter ID", photo: "Photograph",
+            rc: "Registration (RC)", insurance: "Insurance", puc: "Emission (PUC)",
+            sale_deed: "Sale Deed", property_tax: "Property Tax"
+          }
+        },
+        hi: {
+          app: { name: "फैमिली वॉल्ट", footer: "Cloudflare द्वारा सुरक्षित" },
+          loading: { title: "डिजिटल वॉल्ट सिंक हो रहा है...", subtitle: "नवीनतम दस्तावेज़ लाए जा रहे हैं और नवीनीकरण का विश्लेषण हो रहा है" },
+          nav: { dashboard: "डैशबोर्ड", members: "सदस्य", vehicles: "वाहन", properties: "संपत्ति", renewals: "नवीनीकरण", shared: "साझा" },
+          page: { dashboard: "डैशबोर्ड", members: "परिवार के सदस्य", vehicles: "वाहन", properties: "संपत्ति", renewals: "नवीनीकरण ट्रैकिंग", shared: "साझा दस्तावेज़" },
+          search: { placeholder: "दस्तावेज़ खोजें...", noResults: "कोई दस्तावेज़ नहीं मिला।" },
+          stats: { people: "कुल लोग", vehicles: "वाहन", documents: "दस्तावेज़", renewals: "लंबित नवीनीकरण" },
+          home: { members: "परिवार के सदस्य", garage: "गैराज अवलोकन", viewAll: "सभी देखें", noMembers: "कोई सदस्य नहीं मिला।", noVehicles: "कोई वाहन नहीं मिला।" },
+          detail: { back: "सदस्यों पर वापस जाएं", personalProfile: "व्यक्तिगत प्रोफ़ाइल", vault: " का वॉल्ट", docsManaged: "दस्तावेज़ प्रबंधित", noDocs: "कोई मानक पहचान दस्तावेज़ नहीं मिला।", otherDocs: "अन्य दस्तावेज़" },
+          banks: { title: "बैंक खाते", subtitle: "वित्तीय रिकॉर्ड सुरक्षित रूप से प्रबंधित करें", holder: "धारक", accNo: "खाता संख्या", ifsc: "IFSC", copyAll: "सभी कॉपी करें", copied: "कॉपी हो गया!" },
+          docCards: { pdfView: "PDF देखें", imgView: "इमेज देखें", preview: "प्रीव्यू", download: "डाउनलोड", viewDetails: "विवरण देखें", noDocsFound: "कोई दस्तावेज़ नहीं मिला।", noProperties: 'कोई संपत्ति नहीं मिली। Google Drive में "Properties" फ़ोल्डर बनाएं।' },
+          renewals: { title: "आगामी नवीनीकरण", subtitle: '"_due_YYYY-MM-DD" नामकरण पद्धति से ट्रैक की गई फ़ाइलें।', expired: "समाप्त", daysAgo: "दिन पहले", dueIn: "दिन शेष", days: "दिन", noRenewals: "कोई लंबित नवीनीकरण नहीं मिला।", noRenewalsHint: 'यहां ट्रैक करने के लिए फ़ाइल नाम में "_due_YYYY-MM-DD" जोड़ें।', due: "देय:", unknownOwner: "अज्ञात स्वामी", shared: "साझा" },
+          shared: { title: "साझा दस्तावेज़", subtitle: 'रूट "Shared_Documents" फ़ोल्डर में रखे गए दस्तावेज़ यहां दिखाई देते हैं।', noShared: "कोई साझा दस्तावेज़ नहीं मिला।" },
+          setup: { title: "कॉन्फ़िगरेशन आवश्यक", subtitle: "एप्लिकेशन को रूट डायरेक्टरी में vault-config.json नहीं मिला।", demo: "डेमो मोड लॉन्च करें" },
+          modal: { title: "दस्तावेज़ प्रीव्यू", download: "डाउनलोड" },
+          demo: { preview: "डेमो मोड: प्रीव्यू के लिए वास्तविक Google Drive एकीकरण आवश्यक है।", download: "डेमो मोड: डाउनलोड के लिए वास्तविक Google Drive एकीकरण आवश्यक है।" },
+          sync: { failed: "डेटा सिंक करने में विफल। सुनिश्चित करें कि Apps Script अपडेट और सही ढंग से डिप्लॉय है।" },
+          share: { title: "WhatsApp पर शेयर करें", text: "हमारे फैमिली वॉल्ट से यह दस्तावेज़ देखें:\n" },
+          docs: "दस्तावेज़",
+          modal: {
+            addMember: "परिवार सदस्य जोड़ें", memberName: "पूरा नाम", createMember: "सदस्य बनाएं",
+            addVehicle: "वाहन जोड़ें", vehicleName: "वाहन का नाम", createVehicle: "वाहन जोड़ें",
+            addProperty: "संपत्ति जोड़ें", propertyName: "संपत्ति का नाम", createProperty: "संपत्ति जोड़ें",
+            uploadFile: "दस्तावेज़ अपलोड करें", dropHint: "फ़ाइल यहां क्लिक करें या ड्रैग करें",
+            sizeLimit: "अधिकतम ~5 MB प्रति फ़ाइल", upload: "अपलोड", cancel: "रद्द करें",
+            confirmDelete: "हटाने की पुष्टि करें", delete: "हटाएं",
+            deleteWarning: "यह आइटम ट्रैश में जाएगा। आप Google Drive ट्रैश से पुनर्प्राप्त कर सकते हैं।",
+            deleteFolderWarning: "क्या आप वाकई हटाना चाहते हैं ", deleteFileWarning: "क्या आप वाकई हटाना चाहते हैं ",
+            trashRecoverable: "आइटम Google Drive ट्रैश में जाते हैं — 30 दिनों के भीतर पुनर्प्राप्त करने योग्य।"
+          },
+          actions: {
+            addMember: "सदस्य जोड़ें", addVehicle: "वाहन जोड़ें", addProperty: "संपत्ति जोड़ें",
+            uploadDoc: "दस्तावेज़ अपलोड करें", deleteMember: "हटाएं"
+          },
+          docTypes: {
+            aadhaar: "आधार कार्ड", pan: "पैन कार्ड", passport: "पासपोर्ट", driving_licence: "ड्राइविंग लाइसेंस", voter: "वोटर आईडी", photo: "फ़ोटोग्राफ़",
+            rc: "पंजीकरण (RC)", insurance: "बीमा", puc: "प्रदूषण (PUC)",
+            sale_deed: "सेल डीड", property_tax: "संपत्ति कर"
+          }
+        },
+        // 🇮🇳 More Indian languages — community contributions welcome! 🇮🇳
+        // Falls back to English for missing translations.
+        bn: { _name: "Bengali (বাংলা)", _status: "🔧 Community contribution needed" },
+        te: { _name: "Telugu (తెలుగు)", _status: "🔧 Community contribution needed" },
+        mr: { _name: "Marathi (मराठी)", _status: "🔧 Community contribution needed" },
+        ta: { _name: "Tamil (தமிழ்)", _status: "🔧 Community contribution needed" },
+        ur: { _name: "Urdu (اردو)", _status: "🔧 Community contribution needed" },
+        gu: { _name: "Gujarati (ગુજરાતી)", _status: "🔧 Community contribution needed" },
+        kn: { _name: "Kannada (ಕನ್ನಡ)", _status: "🔧 Community contribution needed" },
+        ml: { _name: "Malayalam (മലയാളം)", _status: "🔧 Community contribution needed" },
+        or: { _name: "Odia (ଓଡ଼ିଆ)", _status: "🔧 Community contribution needed" }
+      };
+
+      // Medical i18n — merged at runtime to avoid editing the main I18N blocks
+      const MEDICAL_TRANSLATIONS = {
+        en: {
+          nav: { medical: "Medical" },
+          page: { medical: "Health Records" },
+          medical: {
+            back: "Back to Health Records", vitalsSubtitle: "Latest health vitals", addReading: "Add Reading",
+            newReading: "New Health Reading", sugarFasting: "Sugar (Fasting)", weight: "Weight (kg)",
+            height: "Height (cm)", heartRate: "Heart Rate", date: "Date", notes: "Notes",
+            save: "Save Reading", cancel: "Cancel", history: "Vitals History",
+            sugar: "Sugar", hr: "HR", noVitals: "No vitals recorded yet. Add your first reading!",
+            documents: "Medical Documents", noDocs: "No medical documents found. Upload lab reports, prescriptions, or vaccination records.",
+            bp: "BP", bmi: "BMI", memberSummary: "Health Summary",
+            labReports: "Lab Reports", prescriptions: "Prescriptions", vaccinations: "Vaccinations",
+            otherMedical: "Other Medical", viewDetails: "View Health Records"
+          },
+          docTypes: { medical_lab: "Lab Report", medical_prescription: "Prescription", medical_vaccine: "Vaccination Record", medical_other: "Medical Document" }
+        },
+        hi: {
+          nav: { medical: "चिकित्सा" },
+          page: { medical: "स्वास्थ्य रिकॉर्ड" },
+          medical: {
+            back: "स्वास्थ्य रिकॉर्ड पर वापस जाएं", vitalsSubtitle: "नवीनतम स्वास्थ्य माप", addReading: "रीडिंग जोड़ें",
+            newReading: "नई स्वास्थ्य रीडिंग", sugarFasting: "शुगर (खाली पेट)", weight: "वज़न (किलो)",
+            height: "लंबाई (सेमी)", heartRate: "हृदय गति", date: "दिनांक", notes: "नोट्स",
+            save: "रीडिंग सेव करें", cancel: "रद्द करें", history: "स्वास्थ्य इतिहास",
+            sugar: "शुगर", hr: "HR", noVitals: "अभी तक कोई रीडिंग नहीं। अपनी पहली रीडिंग जोड़ें!",
+            documents: "चिकित्सा दस्तावेज़", noDocs: "कोई चिकित्सा दस्तावेज़ नहीं मिला। लैब रिपोर्ट, प्रिस्क्रिप्शन या टीकाकरण रिकॉर्ड अपलोड करें।",
+            bp: "बीपी", bmi: "BMI", memberSummary: "स्वास्थ्य सारांश",
+            labReports: "लैब रिपोर्ट", prescriptions: "प्रिस्क्रिप्शन", vaccinations: "टीकाकरण",
+            otherMedical: "अन्य चिकित्सा", viewDetails: "स्वास्थ्य रिकॉर्ड देखें"
+          },
+          docTypes: { medical_lab: "लैब रिपोर्ट", medical_prescription: "प्रिस्क्रिप्शन", medical_vaccine: "टीकाकरण रिकॉर्ड", medical_other: "चिकित्सा दस्तावेज़" }
+        }
+      };
+
+      function mergeMedicalI18N() {
+        Object.keys(MEDICAL_TRANSLATIONS).forEach(lang => {
+          if (!I18N[lang] || I18N[lang]._status) return;
+          Object.keys(MEDICAL_TRANSLATIONS[lang]).forEach(cat => {
+            I18N[lang][cat] = { ...I18N[lang][cat], ...MEDICAL_TRANSLATIONS[lang][cat] };
+          });
+        });
+      }
+
+      const LANG_FLAGS = {
+        en: "🇬🇧 English", hi: "🇮🇳 हिन्दी", bn: "🇮🇳 বাংলা", te: "🇮🇳 తెలుగు",
+        mr: "🇮🇳 मराठी", ta: "🇮🇳 தமிழ்", ur: "🇮🇳 اردو",
+        gu: "🇮🇳 ગુજરાતી", kn: "🇮🇳 ಕನ್ನಡ", ml: "🇮🇳 മലയാളം", or: "🇮🇳 ଓଡ଼ିଆ"
+      };
+
+      let currentLang = localStorage.getItem("vault_lang") || "en";
+
+      function t(key) {
+        const keys = key.split(".");
+        let val = (I18N[currentLang] || I18N.en);
+        for (const k of keys) {
+          val = val ? val[k] : undefined;
+        }
+        if (val !== undefined && typeof val === "string") return val;
+        // Fallback to English
+        val = I18N.en;
+        for (const k of keys) {
+          val = val ? val[k] : undefined;
+        }
+        return (val !== undefined && typeof val === "string") ? val : key;
+      }
+
+      function applyTranslations() {
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          el.textContent = t(el.getAttribute("data-i18n"));
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+          el.placeholder = t(el.getAttribute("data-i18n-placeholder"));
+        });
+        document.documentElement.lang = currentLang === "en" ? "en" : "hi";
+      }
+
+      function changeLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem("vault_lang", lang);
+        applyTranslations();
+        renderAll();
+        const titles = {
+          home: t("page.dashboard"), members: t("page.members"), vehicles: t("page.vehicles"),
+          properties: t("page.properties"), renewals: t("page.renewals"), shared: t("page.shared"), medical: t("page.medical")
+        };
+        const activeView = [...document.querySelectorAll(".view-section")].find(v => !v.classList.contains("hidden"));
+        if (activeView) {
+          const viewId = activeView.id.replace("view-", "");
+          if (titles[viewId]) document.getElementById("page-title").innerText = titles[viewId];
+        }
+        document.getElementById("lang-menu").classList.add("hidden");
+      }
+
+      function buildLangMenu() {
+        const menu = document.getElementById("lang-menu");
+        let html = "";
+        Object.keys(LANG_FLAGS).forEach(lang => {
+          const isActive = currentLang === lang;
+          const name = (I18N[lang] && I18N[lang]._name) ? I18N[lang]._name : LANG_FLAGS[lang];
+          const status = (I18N[lang] && I18N[lang]._status) ? ` <span class="text-[9px] text-gray-500">${I18N[lang]._status}</span>` : "";
+          html += `<div class="flex items-center justify-between p-3 border-b border-white/10 hover:bg-white/10 cursor-pointer transition-colors ${isActive ? 'bg-blue-500/20 text-blue-300' : 'text-gray-300'}" onclick="changeLanguage('${lang}')">
+            <span class="text-xs lg:text-sm">${name}${status}</span>
+            ${isActive ? '<i class="fa-solid fa-check text-blue-400 text-xs"></i>' : ''}
+          </div>`;
+        });
+        menu.innerHTML = html;
+      }
+
+      function toggleLangMenu() {
+        const menu = document.getElementById("lang-menu");
+        buildLangMenu();
+        menu.classList.toggle("hidden");
+      }
+
+      document.addEventListener("click", (e) => {
+        const langBtn = document.querySelector(".fa-language")?.parentElement;
+        const langMenu = document.getElementById("lang-menu");
+        if (langMenu && !langMenu.classList.contains("hidden") && !langMenu.contains(e.target) && (!langBtn || !langBtn.contains(e.target))) {
+          langMenu.classList.add("hidden");
+        }
+      });
+
+      // ═══════════════════════════════════════════════════════
+      // PWA — Install Prompt
+      // ═══════════════════════════════════════════════════════
+      let deferredPrompt = null;
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+      });
+
+      async function installPWA() {
+        if (!deferredPrompt) {
+          alert("Install option not available. You can install via browser menu → Add to Home Screen.");
+          return;
+        }
+        deferredPrompt.prompt();
+        const result = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // WHATSAPP SHARE
+      // ═══════════════════════════════════════════════════════
+      function shareViaWhatsApp(fileName, fileId) {
+        const docUrl = `https://drive.google.com/file/d/${fileId}/view`;
+        const shareText = encodeURIComponent(t("share.text") + fileName + "\n" + docUrl);
+        const waUrl = `https://wa.me/?text=${shareText}`;
+        window.open(waUrl, "_blank");
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Core Definitions
+      // ═══════════════════════════════════════════════════════
+      const PERSON_DOC_TYPES = [
+        { id: "aadhaar", nameKey: "docTypes.aadhaar" },
+        { id: "pan", nameKey: "docTypes.pan" },
+        { id: "passport", nameKey: "docTypes.passport" },
+        { id: "driving_licence", nameKey: "docTypes.driving_licence", alt: ["dl", "driving licence"] },
+        { id: "voter", nameKey: "docTypes.voter", alt: ["voter id", "epic"] },
+        { id: "photo", nameKey: "docTypes.photo", isPhoto: true },
+      ];
+
+      const VEHICLE_DOC_TYPES = [
+        { id: "rc", nameKey: "docTypes.rc" },
+        { id: "insurance", nameKey: "docTypes.insurance" },
+        { id: "puc", nameKey: "docTypes.puc", alt: ["emission"] },
+      ];
+
+      const PROPERTY_DOC_TYPES = [
+        { id: "sale_deed", nameKey: "docTypes.sale_deed", alt: ["sale deed", "deed"] },
+        { id: "property_tax", nameKey: "docTypes.property_tax", alt: ["tax"] },
+      ];
+
+      const MEDICAL_KEYWORDS = [
+        "blood", "cbc", "lipid", "sugar", "glucose", "hba1c", "thyroid", "vitamin",
+        "creatinine", "liver", "kidney", "urine", "hemoglobin", "xray", "x-ray", "mri",
+        "ct scan", "ultrasound", "ecg", "echo", "scan", "lab", "pathology",
+        "prescription", "rx", "medicine", "doctor", "vaccine", "vaccination",
+        "immunization", "surgery", "discharge", "hospital", "medical", "health",
+        "dengue", "malaria", "covid", "rtpcr", "thyrocare", "lal path", "dr lal",
+        "medicines", "tablet", "dosage", "report", "checkup", "check-up", "diet"
+      ];
+
+      function isMedicalFile(fileName) {
+        const lower = fileName.toLowerCase();
+        return MEDICAL_KEYWORDS.some(kw => lower.includes(kw));
+      }
+
+      function categorizeMedicalFile(fileName) {
+        const lower = fileName.toLowerCase();
+        const rx = ["prescription", "rx", "medicine", "tablet", "dosage", "medicines"];
+        const vax = ["vaccine", "vaccination", "immunization"];
+        const lab = ["blood", "cbc", "lipid", "sugar", "glucose", "hba1c", "thyroid", "vitamin", "creatinine", "liver", "kidney", "urine", "hemoglobin", "lab", "pathology", "thyrocare", "lal path", "dengue", "malaria", "covid", "rtpcr", "report"];
+        if (rx.some(k => lower.includes(k))) return "prescription";
+        if (vax.some(k => lower.includes(k))) return "vaccine";
+        if (lab.some(k => lower.includes(k))) return "lab";
+        return "other";
+      }
+
+      function docTypeName(typeDef) {
+        return t(typeDef.nameKey);
+      }
+
+      const DUE_DATE_REGEX = /_due_(\d{4}-\d{2}-\d{2})/i;
+      const DEFAULT_BANK_DATA = [];
+
+      let appState = {
+        config: null,
+        driveData: [],
+        people: [],
+        vehicles: [],
+        properties: [],
+        shared: [],
+        renewals: [],
+        bankData: [],
+        isDemo: false,
+      };
+
+      // ═══════════════════════════════════════════════════════
+      // Boot
+      // ═══════════════════════════════════════════════════════
+      window.addEventListener("DOMContentLoaded", initApp);
+
+      async function initApp() {
+        mergeMedicalI18N();
+        applyTranslations();
+        buildLangMenu();
+
+        // Register Service Worker for PWA
+        if ("serviceWorker" in navigator) {
+          try {
+            await navigator.serviceWorker.register("./sw.js");
+          } catch (e) {
+            console.warn("SW registration failed:", e);
+          }
+        }
+
+        try {
+          const response = await fetch("vault-config.json");
+          if (!response.ok) throw new Error("Config not found");
+          appState.config = await response.json();
+          appState.bankData = appState.config.bankAccounts || DEFAULT_BANK_DATA;
+          await syncVaultData(false);
+        } catch (error) {
+          console.warn("Configuration missing, showing setup screen.", error);
+          document.getElementById("loading-state").classList.add("hidden");
+          appState.bankData = DEFAULT_BANK_DATA;
+          showView("setup");
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Utility: Copy to Clipboard
+      // ═══════════════════════════════════════════════════════
+      function copyText(text, btnElement, isCopyAll = false) {
+        navigator.clipboard.writeText(text).then(() => {
+          const originalHtml = btnElement.innerHTML;
+          if (isCopyAll) {
+            btnElement.innerHTML = `<i class="fa-solid fa-check mr-1"></i> ${t("banks.copied")}`;
+            btnElement.classList.remove("text-blue-400", "border-blue-400/30");
+            btnElement.classList.add("text-green-400", "border-green-400/30");
+          } else {
+            btnElement.innerHTML = `<i class="fa-solid fa-check text-green-400 mr-1"></i> ${t("banks.copied")}`;
+          }
+          setTimeout(() => {
+            btnElement.innerHTML = originalHtml;
+            if (isCopyAll) {
+              btnElement.classList.remove("text-green-400", "border-green-400/30");
+              btnElement.classList.add("text-blue-400", "border-blue-400/30");
+            }
+          }, 2500);
+        }).catch(err => { console.error("Failed to copy text: ", err); });
+      }
+
+      async function forceSync() {
+        const syncIcon = document.getElementById("sync-icon");
+        syncIcon.classList.add("fa-spin");
+        localStorage.removeItem("vault_cache_v3");
+        document.getElementById("loading-state").classList.remove("hidden");
+        setTimeout(async () => {
+          await syncVaultData(true);
+          syncIcon.classList.remove("fa-spin");
+        }, 100);
+      }
+
+      function navigate(viewName) {
+        showView(viewName);
+        document.querySelectorAll(".nav-btn").forEach((btn) => {
+          btn.classList.remove("bg-white/10", "text-white", "lg:border-l-2", "border-b-2", "lg:border-b-0", "border-blue-400");
+          if (btn.dataset.target === viewName) {
+            btn.classList.add("bg-white/10", "text-white", "border-b-2", "lg:border-b-0", "lg:border-l-2", "border-blue-400");
+          }
+        });
+        const titles = {
+          home: t("page.dashboard"), members: t("page.members"), vehicles: t("page.vehicles"),
+          properties: t("page.properties"), renewals: t("page.renewals"), shared: t("page.shared"), medical: t("page.medical")
+        };
+        if (titles[viewName]) document.getElementById("page-title").innerText = titles[viewName];
+      }
+
+      function showView(viewId) {
+        document.querySelectorAll(".view-section").forEach((el) => el.classList.add("hidden", "fade-in"));
+        const view = document.getElementById(`view-${viewId}`);
+        view.classList.remove("hidden");
+        void view.offsetWidth;
+        view.classList.add("fade-in");
+      }
+
+      async function syncVaultData(forceRefresh = false) {
+        try {
+          if (!forceRefresh) {
+            const cached = localStorage.getItem("vault_cache_v3");
+            if (cached && !appState.isDemo) {
+              parseCachedData(JSON.parse(cached));
+              document.getElementById("loading-state").classList.add("hidden");
+              navigate("home");
+              return;
+            }
+          }
+          if (appState.isDemo) return;
+
+          const res = await fetch(appState.config.appsScriptUrl);
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+
+          const cleanFiles = (files) => files ? files.filter(f => !f.name.startsWith('.')) : [];
+          appState.people = data.people ? data.people.map(p => ({ ...p, files: cleanFiles(p.files) })) : [];
+          appState.vehicles = data.vehicles ? data.vehicles.map(v => ({ ...v, files: cleanFiles(v.files) })) : [];
+          appState.properties = data.properties ? data.properties.map(prop => ({ ...prop, files: cleanFiles(prop.files) })) : [];
+          appState.shared = cleanFiles(data.shared);
+          appState.driveData = cleanFiles(data.allFiles);
+
+          localStorage.setItem("vault_cache_v3", JSON.stringify({
+            people: appState.people, vehicles: appState.vehicles, properties: appState.properties,
+            shared: appState.shared, allFiles: appState.driveData
+          }));
+          processRenewals();
+          document.getElementById("loading-state").classList.add("hidden");
+          renderAll();
+          if (document.getElementById("view-home").classList.contains("hidden") && !forceRefresh) {
+            navigate("home");
+          }
+        } catch (error) {
+          console.error("Sync failed:", error);
+          document.getElementById("loading-state").classList.add("hidden");
+          alert(t("sync.failed"));
+        }
+      }
+
+      function parseCachedData(data) {
+        appState.people = data.people || [];
+        appState.vehicles = data.vehicles || [];
+        appState.properties = data.properties || [];
+        appState.shared = data.shared || [];
+        appState.driveData = data.allFiles || [];
+        processRenewals();
+        renderAll();
+      }
+
+      function processRenewals() {
+        appState.renewals = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        appState.driveData.forEach(file => {
+          const match = file.name.match(DUE_DATE_REGEX);
+          if (match) {
+            const dateStr = match[1];
+            const dueDate = new Date(dateStr);
+            dueDate.setHours(0, 0, 0, 0);
+            const diffTime = dueDate - today;
+            const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const cleanName = file.name.replace(DUE_DATE_REGEX, '').replace(/_/g, ' ').replace(/\.[^/.]+$/, "");
+            let status = 'safe';
+            if (daysLeft < 0) status = 'expired';
+            else if (daysLeft <= 30) status = 'warning';
+            appState.renewals.push({
+              file: file, cleanName: cleanName, parentName: file.parentName,
+              dateString: dateStr, dateObj: dueDate, daysLeft: daysLeft, status: status
+            });
+          }
+        });
+        appState.renewals.sort((a, b) => a.daysLeft - b.daysLeft);
+      }
+
+      function getDocumentFormat(files, typeDef) {
+        const keywords = [typeDef.id, ...(typeDef.alt || [])];
+        const matchedFiles = files.filter(file => keywords.some(kw => file.name.toLowerCase().includes(kw.toLowerCase())));
+        const result = { found: false, pdf: null, img: null };
+        matchedFiles.forEach(file => {
+          result.found = true;
+          const nameLower = file.name.toLowerCase();
+          const isPdf = file.mimeType.includes("pdf") || nameLower.endsWith(".pdf");
+          const isImg = file.mimeType.includes("image") || nameLower.match(/\.(jpg|jpeg|png|gif|webp)$/);
+          if (isPdf) result.pdf = file;
+          if (isImg) result.img = file;
+        });
+        return result;
+      }
+
+      function getFileIcon(mimeType) {
+        if (!mimeType) return "fa-file";
+        if (mimeType.includes("pdf")) return "fa-file-pdf text-red-400";
+        if (mimeType.includes("image")) return "fa-file-image text-blue-400";
+        return "fa-file text-gray-400";
+      }
+
+      function generateProfileHTML(photoFile, containerClasses, iconClasses) {
+        if (!photoFile.img || appState.isDemo) {
+          return `<div class="${containerClasses} bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0"><i class="fa-solid fa-user ${iconClasses}"></i></div>`;
+        }
+        const primary = `https://drive.google.com/thumbnail?id=${photoFile.img.id}&sz=w400`;
+        const fallback = `https://drive.google.com/uc?export=view&id=${photoFile.img.id}`;
+        return `<div class="relative ${containerClasses} bg-blue-500/20 flex items-center justify-center text-blue-400 border border-white/20 overflow-hidden shrink-0">
+          <i class="fa-solid fa-user absolute ${iconClasses}"></i>
+          <img src="${primary}" referrerpolicy="no-referrer" class="w-full h-full object-cover absolute inset-0 z-10 bg-[#0f172a]" onerror="if(!this.dataset.fb){ this.dataset.fb='1'; this.src='${fallback}'; } else { this.style.display='none'; }"></div>`;
+      }
+
+      function renderAll() {
+        renderDashboard(); renderMembersList(); renderVehiclesList();
+        renderPropertiesList(); renderRenewalsList(); renderSharedList(); renderMedicalList();
+      }
+
+      function renderDashboard() {
+        document.getElementById("stat-people").innerText = appState.people.length;
+        document.getElementById("stat-vehicles").innerText = appState.vehicles.length;
+        document.getElementById("stat-docs").innerText = appState.driveData.length;
+
+        const alertsContainer = document.getElementById("dashboard-alerts");
+        const pendingRenewals = appState.renewals.filter(r => r.status === 'warning' || r.status === 'expired');
+        document.getElementById("stat-renewals").innerText = pendingRenewals.length;
+
+        if (pendingRenewals.length > 0) {
+          document.getElementById("stat-renewals").classList.remove("text-amber-400");
+          document.getElementById("stat-renewals").classList.add("text-red-400");
+          document.getElementById("nav-renewal-badge").classList.remove("hidden");
+        } else {
+          document.getElementById("stat-renewals").classList.add("text-amber-400");
+          document.getElementById("stat-renewals").classList.remove("text-red-400");
+          document.getElementById("nav-renewal-badge").classList.add("hidden");
+        }
+
+        let alertsHtml = "";
+        pendingRenewals.forEach(r => {
+          const isExpired = r.status === 'expired';
+          const bgClass = isExpired ? 'bg-red-500/20 border-red-500/50' : 'bg-amber-500/20 border-amber-500/50';
+          const textClass = isExpired ? 'text-red-300' : 'text-amber-300';
+          const icon = isExpired ? 'fa-circle-exclamation' : 'fa-triangle-exclamation';
+          const dayText = isExpired ? `${t("renewals.expired")} ${Math.abs(r.daysLeft)} ${t("renewals.daysAgo")}` : `${t("renewals.dueIn")} ${r.daysLeft} ${t("renewals.days")}`;
+          alertsHtml += `<div class="glass-panel p-4 rounded-xl flex items-center justify-between border ${bgClass} cursor-pointer hover:bg-white/5 transition-colors" onclick="navigate('renewals')">
+            <div class="flex items-center truncate pr-4">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${textClass} bg-black/20"><i class="fa-solid ${icon}"></i></div>
+              <div class="ml-4 truncate">
+                <h4 class="font-medium text-white text-sm lg:text-base truncate">${r.cleanName}</h4>
+                <p class="text-xs ${textClass} mt-0.5">${r.parentName || t("renewals.unknownOwner")} • ${dayText}</p>
+              </div>
+            </div>
+            <button class="text-xs lg:text-sm text-white/70 hover:text-white shrink-0 whitespace-nowrap bg-black/20 px-3 py-1.5 rounded-lg border border-white/10">${t("docCards.viewDetails")}</button>
+          </div>`;
+        });
+        alertsContainer.innerHTML = alertsHtml;
+
+        const homeMembersHtml = [];
+        appState.people.forEach((person) => {
+          const photoFile = getDocumentFormat(person.files, PERSON_DOC_TYPES.find(t => t.isPhoto));
+          const profileHtml = generateProfileHTML(photoFile, "w-10 h-10 rounded-full", "text-sm");
+          homeMembersHtml.push(`<div class="flex items-center justify-between p-3 glass-card rounded-xl cursor-pointer hover:bg-white/10 transition-colors" onclick="openMemberDetail('${person.name}')">
+            <div class="flex items-center">${profileHtml}<span class="ml-3 font-medium text-white/90 text-sm lg:text-base">${person.name}</span></div>
+            <div class="text-[10px] lg:text-xs font-medium px-2 py-1 rounded bg-black/20 text-gray-400">${person.files.length} ${t("docs")}</div>
+          </div>`);
+        });
+
+        const homeVehiclesHtml = [];
+        appState.vehicles.forEach((veh) => {
+          homeVehiclesHtml.push(`<div class="flex items-center justify-between p-3 glass-card rounded-xl cursor-pointer hover:bg-white/10 transition-colors" onclick="navigate('vehicles')">
+            <div class="flex items-center overflow-hidden">
+              <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0"><i class="fa-solid fa-car text-sm"></i></div>
+              <span class="ml-3 font-medium text-white/90 truncate text-sm lg:text-base">${veh.name}</span>
+            </div>
+            <span class="text-[10px] lg:text-xs text-gray-400 whitespace-nowrap ml-2 font-medium px-2 py-1 rounded bg-black/20">${veh.files.length} ${t("docs")}</span>
+          </div>`);
+        });
+
+        document.getElementById("home-members-list").innerHTML = homeMembersHtml.slice(0, 4).join("") || `<p class="text-gray-500 text-sm p-2">${t("home.noMembers")}</p>`;
+        document.getElementById("home-vehicles-list").innerHTML = homeVehiclesHtml.slice(0, 4).join("") || `<p class="text-gray-500 text-sm p-2">${t("home.noVehicles")}</p>`;
+      }
+
+      function renderMembersList() {
+        const grid = document.getElementById("members-grid");
+        let html = "";
+        // Add Member button card
+        html += `<div class="glass-panel rounded-2xl overflow-hidden cursor-pointer group border-dashed border-2 border-white/10 hover:border-blue-400/50 transition-all min-h-[100px] flex items-center justify-center" onclick="openAddMemberModal()">
+          <div class="p-5 lg:p-6 text-center">
+            <div class="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-500/20 transition-all">
+              <i class="fa-solid fa-plus text-2xl text-blue-400"></i>
+            </div>
+            <p class="text-sm text-blue-400 group-hover:text-blue-300 font-medium" data-i18n="actions.addMember">Add Member</p>
+          </div>
+        </div>`;
+        appState.people.forEach((person) => {
+          const escapedName = person.name.replace(/'/g, "\\'");
+          const photoFile = getDocumentFormat(person.files, PERSON_DOC_TYPES.find(t => t.isPhoto));
+          const profileHtml = generateProfileHTML(photoFile, "w-14 h-14 lg:w-16 lg:h-16 rounded-full border-2", "text-2xl");
+          html += `<div class="glass-panel rounded-2xl overflow-hidden group hover:border-white/20 transition-all relative">
+            <div class="p-5 lg:p-6 flex items-center cursor-pointer" onclick="openMemberDetail('${escapedName}')">
+              ${profileHtml}
+              <div class="ml-4 overflow-hidden flex-1">
+                <h3 class="text-lg lg:text-xl font-medium text-white group-hover:text-blue-400 transition-colors truncate">${person.name}</h3>
+                <p class="text-xs text-gray-400 mt-1">${person.files.length} ${t("detail.docsManaged")}</p>
+              </div>
+            </div>
+            <button onclick="event.stopPropagation(); confirmDeleteFolder('PEOPLE', '${escapedName}', '${escapedName}')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-red-500/10 hover:bg-red-500/30 text-red-400 hover:text-red-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" title="Delete member">
+              <i class="fa-solid fa-trash text-xs"></i>
+            </button>
+          </div>`;
+        });
+        grid.innerHTML = html;
+      }
+
+      function openMemberDetail(personName) {
+        const person = appState.people.find((p) => p.name === personName);
+        if (!person) return;
+
+        document.getElementById("page-title").innerText = `${person.name}${t("detail.vault")}`;
+        document.getElementById("detail-name").innerText = person.name;
+
+        // Wire up upload & delete buttons
+        const escapedName = person.name.replace(/'/g, "\\'");
+        document.getElementById("detail-upload-btn").onclick = () => openUploadModal("PEOPLE", person.name);
+        document.getElementById("detail-delete-btn").onclick = () => confirmDeleteFolder("PEOPLE", person.name, person.name);
+
+        const photoFile = getDocumentFormat(person.files, PERSON_DOC_TYPES.find(t => t.isPhoto));
+        const photoContainer = document.getElementById("detail-photo-container");
+        photoContainer.innerHTML = generateProfileHTML(photoFile, "h-16 w-16 lg:h-20 lg:w-20 rounded-full border-2 border-white/20", "text-2xl lg:text-3xl");
+
+        const matchedFileIds = new Set();
+        if (photoFile.img) matchedFileIds.add(photoFile.img.id);
+
+        const docsGrid = document.getElementById("detail-docs-grid");
+        let docsHtml = "";
+
+        PERSON_DOC_TYPES.filter(t => !t.isPhoto).forEach((type) => {
+          const doc = getDocumentFormat(person.files, type);
+          if (!doc.found) return;
+          if (doc.pdf) matchedFileIds.add(doc.pdf.id);
+          if (doc.img) matchedFileIds.add(doc.img.id);
+
+          docsHtml += `<div class="glass-panel p-4 lg:p-5 rounded-xl flex flex-col justify-between relative group">
+            <div class="flex items-center mb-3 lg:mb-4">
+              <i class="fa-solid fa-file-shield text-blue-400 mr-3 text-lg"></i>
+              <h4 class="font-medium text-white text-sm lg:text-base">${docTypeName(type)}</h4>
+            </div>
+            <div class="flex flex-col space-y-2 mt-2">
+              ${doc.pdf ? `<div class="flex space-x-2">
+                <button onclick="previewFile('${doc.pdf.id}', '${person.name} - ${docTypeName(type)} (PDF)')" class="glass-button flex-1 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-regular fa-eye mr-1"></i> ${t("docCards.pdfView")}</button>
+                <button onclick="downloadFile('${doc.pdf.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-solid fa-download"></i></button>
+                <button onclick="shareViaWhatsApp('${docTypeName(type)}', '${doc.pdf.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+                <button onclick="event.stopPropagation(); confirmDeleteFile('${doc.pdf.id}', '${(docTypeName(type)+' (PDF)').replace(/'/g, "\\'")}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              </div>` : ''}
+              ${doc.img ? `<div class="flex space-x-2">
+                <button onclick="previewFile('${doc.img.id}', '${person.name} - ${docTypeName(type)} (Image)')" class="glass-button flex-1 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-regular fa-image mr-1"></i> ${t("docCards.imgView")}</button>
+                <button onclick="downloadFile('${doc.img.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-solid fa-download"></i></button>
+                <button onclick="shareViaWhatsApp('${docTypeName(type)}', '${doc.img.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+                <button onclick="event.stopPropagation(); confirmDeleteFile('${doc.img.id}', '${(docTypeName(type)+' (Image)').replace(/'/g, "\\'")}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              </div>` : ''}
+            </div>
+          </div>`;
+        });
+        docsGrid.innerHTML = docsHtml || `<p class="text-gray-500 text-sm italic col-span-full">${t("detail.noDocs")}</p>`;
+
+        // Bank Accounts
+        const banksContainer = document.getElementById("detail-banks-container");
+        const banksGrid = document.getElementById("detail-banks-grid");
+        const normalizedSearchName = personName.trim().toLowerCase();
+        const personBankData = appState.bankData.find(b => b.person.trim().toLowerCase() === normalizedSearchName);
+
+        if (personBankData && personBankData.banks.length > 0) {
+          let bankHtml = "";
+          personBankData.banks.forEach(bank => {
+            const primaryHolder = bank["Primary Account Holder"] || bank.primaryAccountHolder || personName;
+            const copyAllText = `Bank Name: ${bank.bankName}\nAccount Number: ${bank.accNumber}\nPrimary Account Holder: ${primaryHolder}\nIFSC Code: ${bank.ifsc}\nBranch Name: ${bank.branch}`;
+            const safeCopyAllText = copyAllText.replace(/'/g, "\\'").replace(/\n/g, "\\n");
+
+            bankHtml += `<div class="bank-card p-5 rounded-xl border border-white/10 relative overflow-hidden group shadow-lg flex flex-col">
+              <i class="fa-solid fa-building-columns absolute -right-4 -bottom-4 text-[80px] text-white/[0.03] transform group-hover:scale-110 transition-transform duration-500"></i>
+              <div class="relative z-10 flex-1 flex flex-col">
+                <div class="flex justify-between items-start mb-2">
+                  <h4 class="font-semibold text-lg text-white">${bank.bankName}</h4>
+                  <button onclick="copyText('${safeCopyAllText}', this, true)" class="text-xs text-blue-400 hover:text-blue-300 bg-white/5 hover:bg-white/10 px-2 py-1 rounded transition-colors flex items-center shrink-0 border border-blue-400/30" title="Copy Full Details">
+                    <i class="fa-regular fa-copy mr-1"></i> ${t("banks.copyAll")}
+                  </button>
+                </div>
+                <p class="text-xs text-gray-400 mb-4 truncate" title="${bank.branch}"><i class="fa-solid fa-location-dot mr-1 text-gray-500"></i> ${bank.branch}</p>
+                <div class="space-y-2 mt-auto">
+                  <div class="flex justify-between items-center bg-black/40 border border-white/5 p-2.5 rounded-lg hover:bg-black/60 transition-colors group/row">
+                    <span class="text-xs text-gray-400 shrink-0 mr-2">${t("banks.holder")}</span>
+                    <button onclick="copyText('${primaryHolder}', this)" class="text-sm text-gray-200 hover:text-white flex items-center focus:outline-none text-right truncate" title="Click to copy">
+                      <span class="truncate">${primaryHolder}</span> <i class="fa-regular fa-copy ml-2 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0"></i>
+                    </button>
+                  </div>
+                  <div class="flex justify-between items-center bg-black/40 border border-white/5 p-2.5 rounded-lg hover:bg-black/60 transition-colors group/row">
+                    <span class="text-xs text-gray-400 shrink-0 mr-2">${t("banks.accNo")}</span>
+                    <button onclick="copyText('${bank.accNumber}', this)" class="font-mono text-sm text-blue-300 hover:text-blue-200 flex items-center focus:outline-none" title="Click to copy">
+                      ${bank.accNumber} <i class="fa-regular fa-copy ml-2 opacity-0 group-hover/row:opacity-100 transition-opacity"></i>
+                    </button>
+                  </div>
+                  <div class="flex justify-between items-center bg-black/40 border border-white/5 p-2.5 rounded-lg hover:bg-black/60 transition-colors group/row">
+                    <span class="text-xs text-gray-400 shrink-0 mr-2">${t("banks.ifsc")}</span>
+                    <button onclick="copyText('${bank.ifsc}', this)" class="font-mono text-sm text-gray-200 hover:text-white flex items-center focus:outline-none" title="Click to copy">
+                      ${bank.ifsc} <i class="fa-regular fa-copy ml-2 opacity-0 group-hover/row:opacity-100 transition-opacity"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+          });
+          banksGrid.innerHTML = bankHtml;
+          banksContainer.classList.remove("hidden");
+        } else {
+          banksContainer.classList.add("hidden");
+          banksGrid.innerHTML = "";
+        }
+
+        // Other Docs
+        const otherFiles = person.files.filter(f => !matchedFileIds.has(f.id));
+        const otherDocsContainer = document.getElementById("detail-other-docs-container");
+        const otherDocsGrid = document.getElementById("detail-other-docs-grid");
+
+        if (otherFiles.length > 0) {
+          let otherHtml = "";
+          otherFiles.forEach(f => {
+            const icon = getFileIcon(f.mimeType);
+            const renewalInfo = appState.renewals.find(r => r.file.id === f.id);
+            const displayTitle = renewalInfo ? renewalInfo.cleanName : f.name;
+            const statusBadge = renewalInfo ? `<span class="mt-1 inline-block text-[9px] px-2 py-0.5 rounded-full ${renewalInfo.status === 'safe' ? 'bg-green-500/20 text-green-400' : (renewalInfo.status === 'warning' ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400')}">${t("renewals.due")} ${renewalInfo.dateString}</span>` : '';
+
+            otherHtml += `<div class="glass-panel p-4 lg:p-5 rounded-xl flex flex-col justify-between relative group">
+              <div class="mb-3 lg:mb-4 overflow-hidden">
+                <div class="flex items-center truncate">
+                  <i class="fa-solid ${icon} mr-2 lg:mr-3 text-base lg:text-lg shrink-0"></i>
+                  <h4 class="font-medium text-white truncate text-xs lg:text-sm" title="${f.name}">${displayTitle}</h4>
+                </div>
+                ${statusBadge}
+              </div>
+              <div class="flex space-x-2 mt-auto border-t border-white/5 pt-3">
+                <button onclick="previewFile('${f.id}', '${f.name}')" class="glass-button flex-1 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-regular fa-eye mr-1"></i> ${t("docCards.preview")}</button>
+                <button onclick="downloadFile('${f.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-solid fa-download"></i></button>
+                <button onclick="shareViaWhatsApp('${f.name}', '${f.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+                <button onclick="event.stopPropagation(); confirmDeleteFile('${f.id}', '${f.name.replace(/'/g, "\\'")}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </div>`;
+          });
+          otherDocsGrid.innerHTML = otherHtml;
+          otherDocsContainer.classList.remove("hidden");
+        } else {
+          otherDocsContainer.classList.add("hidden");
+          otherDocsGrid.innerHTML = "";
+        }
+
+        showView("member-detail");
+      }
+
+      function renderVehiclesList() {
+        const grid = document.getElementById("vehicles-grid");
+        let html = "";
+        // Add Vehicle button card
+        html += `<div class="glass-panel rounded-2xl overflow-hidden cursor-pointer group border-dashed border-2 border-white/10 hover:border-purple-400/50 transition-all min-h-[60px] flex items-center justify-center" onclick="openAddVehicleModal()">
+          <div class="p-4 text-center flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-all">
+              <i class="fa-solid fa-plus text-xl text-purple-400"></i>
+            </div>
+            <p class="text-sm text-purple-400 group-hover:text-purple-300 font-medium" data-i18n="actions.addVehicle">Add Vehicle</p>
+          </div>
+        </div>`;
+        appState.vehicles.forEach((veh) => {
+          const escapedName = veh.name.replace(/'/g, "\\'");
+          let docsHtml = "";
+          veh.files.forEach((file) => {
+            const icon = getFileIcon(file.mimeType);
+            const renewalInfo = appState.renewals.find(r => r.file.id === file.id);
+            const displayName = renewalInfo ? renewalInfo.cleanName : file.name;
+            docsHtml += `<div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+              <div class="truncate pr-2">
+                <p class="text-xs lg:text-sm text-gray-300 truncate"><i class="fa-solid ${icon} mr-1.5 opacity-60"></i> ${displayName}</p>
+                ${renewalInfo ? `<p class="text-[9px] text-amber-400 mt-0.5 ml-4">${t("renewals.due")} ${renewalInfo.dateString}</p>` : ''}
+              </div>
+              <div class="flex space-x-1 shrink-0">
+                <button onclick="previewFile('${file.id}', '${file.name}')" class="text-blue-400 hover:text-white px-2"><i class="fa-regular fa-eye"></i></button>
+                <button onclick="shareViaWhatsApp('${file.name}', '${file.id}')" class="text-green-400 hover:text-green-300 px-2" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+                <button onclick="event.stopPropagation(); confirmDeleteFile('${file.id}', '${file.name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-300 px-2" title="Delete file"><i class="fa-solid fa-trash text-xs"></i></button>
+              </div>
+            </div>`;
+          });
+          html += `<div class="glass-panel rounded-2xl p-4 lg:p-6 relative">
+            <button onclick="event.stopPropagation(); confirmDeleteFolder('VEHICLES', '${escapedName}', '${escapedName}')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-red-500/10 hover:bg-red-500/30 text-red-400 hover:text-red-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10" title="Delete vehicle">
+              <i class="fa-solid fa-trash text-xs"></i>
+            </button>
+            <div class="flex items-center mb-4 lg:mb-6">
+              <div class="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 text-lg lg:text-xl shrink-0"><i class="fa-solid fa-car"></i></div>
+              <h3 class="ml-3 lg:ml-4 text-base lg:text-lg font-medium text-white truncate">${veh.name}</h3>
+            </div>
+            <div class="bg-black/10 rounded-xl p-3 lg:p-4">${docsHtml || `<p class="text-xs text-gray-500">${t("docCards.noDocsFound")}</p>`}</div>
+            <button onclick="openUploadModal('VEHICLES', '${escapedName}')" class="mt-3 w-full glass-button py-2 rounded-lg text-xs flex items-center justify-center text-blue-400 hover:text-blue-300">
+              <i class="fa-solid fa-cloud-arrow-up mr-2"></i> <span data-i18n="actions.uploadDoc">Upload Document</span>
+            </button>
+          </div>`;
+        });
+        grid.innerHTML = html;
+      }
+
+      function renderPropertiesList() {
+        const grid = document.getElementById("properties-grid");
+        let html = "";
+        // Add Property button card
+        html += `<div class="glass-panel rounded-2xl overflow-hidden cursor-pointer group border-dashed border-2 border-white/10 hover:border-emerald-400/50 transition-all min-h-[60px] flex items-center justify-center" onclick="openAddPropertyModal()">
+          <div class="p-4 text-center flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-all">
+              <i class="fa-solid fa-plus text-xl text-emerald-400"></i>
+            </div>
+            <p class="text-sm text-emerald-400 group-hover:text-emerald-300 font-medium" data-i18n="actions.addProperty">Add Property</p>
+          </div>
+        </div>`;
+        appState.properties.forEach((prop) => {
+          const escapedName = prop.name.replace(/'/g, "\\'");
+          let docsHtml = "";
+          prop.files.forEach((file) => {
+            const icon = getFileIcon(file.mimeType);
+            const renewalInfo = appState.renewals.find(r => r.file.id === file.id);
+            const displayName = renewalInfo ? renewalInfo.cleanName : file.name;
+            docsHtml += `<div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+              <div class="truncate pr-2">
+                <p class="text-xs lg:text-sm text-gray-300 truncate"><i class="fa-solid ${icon} mr-1.5 opacity-60"></i> ${displayName}</p>
+                ${renewalInfo ? `<p class="text-[9px] text-amber-400 mt-0.5 ml-4">${t("renewals.due")} ${renewalInfo.dateString}</p>` : ''}
+              </div>
+              <div class="flex space-x-1 shrink-0">
+                <button onclick="previewFile('${file.id}', '${file.name}')" class="text-blue-400 hover:text-white px-2"><i class="fa-regular fa-eye"></i></button>
+                <button onclick="shareViaWhatsApp('${file.name}', '${file.id}')" class="text-green-400 hover:text-green-300 px-2" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+                <button onclick="event.stopPropagation(); confirmDeleteFile('${file.id}', '${file.name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-300 px-2" title="Delete file"><i class="fa-solid fa-trash text-xs"></i></button>
+              </div>
+            </div>`;
+          });
+          html += `<div class="glass-panel rounded-2xl p-4 lg:p-6 relative">
+            <button onclick="event.stopPropagation(); confirmDeleteFolder('PROPERTIES', '${escapedName}', '${escapedName}')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-red-500/10 hover:bg-red-500/30 text-red-400 hover:text-red-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10" title="Delete property">
+              <i class="fa-solid fa-trash text-xs"></i>
+            </button>
+            <div class="flex items-center mb-4 lg:mb-6">
+              <div class="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg lg:text-xl shrink-0"><i class="fa-solid fa-house"></i></div>
+              <h3 class="ml-3 lg:ml-4 text-base lg:text-lg font-medium text-white truncate">${prop.name}</h3>
+            </div>
+            <div class="bg-black/10 rounded-xl p-3 lg:p-4">${docsHtml || `<p class="text-xs text-gray-500">${t("docCards.noDocsFound")}</p>`}</div>
+            <button onclick="openUploadModal('PROPERTIES', '${escapedName}')" class="mt-3 w-full glass-button py-2 rounded-lg text-xs flex items-center justify-center text-blue-400 hover:text-blue-300">
+              <i class="fa-solid fa-cloud-arrow-up mr-2"></i> <span data-i18n="actions.uploadDoc">Upload Document</span>
+            </button>
+          </div>`;
+        });
+        if (!html.includes("glass-panel rounded-2xl p-4 lg:p-6 relative")) {
+          html += `<div class="col-span-full p-8 text-center text-gray-500 glass-panel rounded-xl">${t("docCards.noProperties")}</div>`;
+        }
+        grid.innerHTML = html;
+      }
+
+      function renderRenewalsList() {
+        const list = document.getElementById("renewals-list");
+        let html = "";
+        appState.renewals.forEach(r => {
+          const isSafe = r.status === 'safe';
+          const isWarning = r.status === 'warning';
+          const isExpired = r.status === 'expired';
+          const bgClass = isExpired ? 'bg-red-500/10 border-red-500/30' : (isWarning ? 'bg-amber-500/10 border-amber-500/30' : 'bg-white/5 border-white/10');
+          const iconClass = isExpired ? 'text-red-400' : (isWarning ? 'text-amber-400' : 'text-green-400');
+          const iconBadge = isExpired ? 'fa-circle-xmark' : (isWarning ? 'fa-triangle-exclamation' : 'fa-circle-check');
+          const dayText = isExpired ? `${t("renewals.expired")} ${Math.abs(r.daysLeft)} ${t("renewals.daysAgo")}` : `${t("renewals.dueIn")} ${r.daysLeft} ${t("renewals.days")}`;
+
+          html += `<div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-xl ${bgClass} transition-all hover:bg-white/10">
+            <div class="flex items-center overflow-hidden mb-3 sm:mb-0">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-black/30 ${iconClass}"><i class="fa-solid ${iconBadge} text-lg"></i></div>
+              <div class="ml-4 truncate">
+                <h4 class="font-medium text-white text-sm lg:text-base truncate">${r.cleanName}</h4>
+                <p class="text-xs text-gray-400 mt-0.5"><i class="fa-regular fa-folder text-gray-500 mr-1"></i> ${r.parentName || t("renewals.shared")} • <span class="font-mono text-[10px] text-gray-500 ml-1">${t("renewals.due")} ${r.dateString}</span></p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between sm:justify-end shrink-0 w-full sm:w-auto">
+              <span class="text-xs font-medium px-3 py-1 rounded bg-black/30 ${iconClass} mr-4">${dayText}</span>
+              <div class="flex space-x-2">
+                <button onclick="previewFile('${r.file.id}', '${r.file.name}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-gray-300 hover:text-white"><i class="fa-regular fa-eye"></i></button>
+                <button onclick="downloadFile('${r.file.id}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-gray-300 hover:text-white"><i class="fa-solid fa-download"></i></button>
+                <button onclick="shareViaWhatsApp('${r.cleanName}', '${r.file.id}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+              </div>
+            </div>
+          </div>`;
+        });
+
+        if (!html) html = `<div class="text-center py-10 text-gray-500 text-sm"><i class="fa-regular fa-calendar-check text-4xl mb-3 block opacity-50"></i>${t("renewals.noRenewals")}<br><span class="text-[10px]">${t("renewals.noRenewalsHint")}</span></div>`;
+        list.innerHTML = html;
+      }
+
+      function renderSharedList() {
+        const list = document.getElementById("shared-list");
+        let html = "";
+        // Upload button at top
+        html += `<div class="flex justify-end mb-4">
+          <button onclick="openUploadModal('SHARED', 'Shared_Documents')" class="glass-button px-4 py-2 rounded-lg text-xs flex items-center text-blue-400 hover:text-blue-300">
+            <i class="fa-solid fa-cloud-arrow-up mr-2"></i> <span data-i18n="actions.uploadDoc">Upload Document</span>
+          </button>
+        </div>`;
+        appState.shared.forEach((file) => {
+          const icon = getFileIcon(file.mimeType);
+          html += `<div class="glass-card p-3 lg:p-4 rounded-xl flex items-center justify-between hover:bg-white/5 transition-colors group">
+            <div class="flex items-center overflow-hidden pr-2">
+              <i class="fa-solid ${icon} text-lg lg:text-xl w-6 lg:w-8 text-center shrink-0"></i>
+              <span class="ml-2 lg:ml-3 text-xs lg:text-sm font-medium text-gray-200 truncate">${file.name}</span>
+            </div>
+            <div class="flex space-x-2 lg:space-x-3 shrink-0">
+              <button onclick="previewFile('${file.id}', '${file.name}')" class="text-gray-400 hover:text-white transition-colors p-2"><i class="fa-regular fa-eye"></i></button>
+              <button onclick="downloadFile('${file.id}')" class="text-gray-400 hover:text-white transition-colors p-2"><i class="fa-solid fa-download"></i></button>
+              <button onclick="shareViaWhatsApp('${file.name}', '${file.id}')" class="text-green-400 hover:text-green-300 transition-colors p-2" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+              <button onclick="confirmDeleteFile('${file.id}', '${file.name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-300 transition-colors p-2 opacity-0 group-hover:opacity-100" title="Delete"><i class="fa-solid fa-trash text-xs"></i></button>
+            </div>
+          </div>`;
+        });
+        if (!appState.shared.length) html += `<p class="text-center text-gray-500 text-sm mt-4">${t("shared.noShared")}</p>`;
+        list.innerHTML = html;
+      }
+
+      function previewFile(id, title) {
+        if (!id) return;
+        if (appState.isDemo) {
+          alert(t("demo.preview"));
+          return;
+        }
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+          window.open(`https://drive.google.com/file/d/${id}/view`, "_blank");
+          return;
+        }
+        const modal = document.getElementById("preview-modal");
+        const container = document.getElementById("modal-content-container");
+        const downloadBtn = document.getElementById("modal-download-btn");
+        document.getElementById("modal-title").innerText = title;
+        document.getElementById("modal-loader").classList.remove("hidden");
+        container.innerHTML = "";
+        downloadBtn.onclick = (e) => { e.preventDefault(); downloadFile(id); };
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://drive.google.com/file/d/${id}/preview`;
+        iframe.setAttribute("style", "width: 100%; height: 100%; border: none; border-radius: 0.5rem;");
+        iframe.onload = () => document.getElementById("modal-loader").classList.add("hidden");
+        container.appendChild(iframe);
+        modal.classList.remove("hidden");
+        void modal.offsetWidth;
+        modal.classList.add("opacity-100");
+      }
+
+      function closeModal() {
+        const modal = document.getElementById("preview-modal");
+        modal.classList.remove("opacity-100");
+        setTimeout(() => { modal.classList.add("hidden"); document.getElementById("modal-content-container").innerHTML = ""; }, 300);
+      }
+
+      function downloadFile(id) {
+        if (appState.isDemo) { alert(t("demo.download")); return; }
+        window.open(`https://drive.google.com/uc?export=download&id=${id}`, "_blank");
+      }
+
+      function startDemoMode() {
+        appState.isDemo = true;
+        appState.people = [
+          { name: "Dad", files: [] },
+          { name: "Mom", files: [] },
+          { name: "Child", files: [] }
+        ];
+        appState.vehicles = [{ name: "Car - KA01AB1234", files: [] }];
+        appState.properties = [{ name: "Our Home", files: [] }];
+        appState.shared = [];
+        appState.driveData = [];
+        appState.renewals = [];
+        processRenewals();
+        renderAll();
+        navigate("home");
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // MEDICAL — Health Vitals & Records Manager
+      // ═══════════════════════════════════════════════════════
+      const VITALS_STORAGE_KEY = "vault_health_vitals";
+
+      function getVitalsData() {
+        try { return JSON.parse(localStorage.getItem(VITALS_STORAGE_KEY)) || {}; }
+        catch (e) { return {}; }
+      }
+
+      function saveVitalsData(data) {
+        localStorage.setItem(VITALS_STORAGE_KEY, JSON.stringify(data));
+      }
+
+      function getPersonVitals(personName) {
+        const data = getVitalsData();
+        return (data[personName] || []).sort((a, b) => new Date(b.date) - new Date(a.date));
+      }
+
+      function getLatestVitals(personName) {
+        const vitals = getPersonVitals(personName);
+        return vitals.length > 0 ? vitals[0] : null;
+      }
+
+      let medicalSelectedPerson = null;
+
+      function renderMedicalList() {
+        const grid = document.getElementById("medical-members-list");
+        let html = "";
+        appState.people.forEach(person => {
+          const latest = getLatestVitals(person.name);
+          const medicalFiles = person.files.filter(f => isMedicalFile(f.name));
+          const bpDisplay = latest && latest.bpSystolic ? `${latest.bpSystolic}/${latest.bpDiastolic || "?"}` : "--";
+          const sugarDisplay = latest && latest.sugarFasting ? `${latest.sugarFasting} mg/dL` : "--";
+
+          html += `<div class="glass-panel rounded-2xl overflow-hidden cursor-pointer group hover:border-white/20 transition-all" onclick="openMedicalDetail('${person.name.replace(/'/g, "\\'")}')">
+            <div class="p-4 lg:p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base lg:text-lg font-medium text-white group-hover:text-rose-400 transition-colors truncate">${person.name}</h3>
+                <i class="fa-solid fa-heart-pulse text-rose-400/60 group-hover:text-rose-400 transition-colors"></i>
+              </div>
+              <div class="grid grid-cols-3 gap-2 mb-3">
+                <div class="bg-black/20 rounded-lg p-2 text-center">
+                  <p class="text-[9px] text-gray-500">${t("medical.bp")}</p>
+                  <p class="text-xs lg:text-sm font-mono font-medium text-white">${bpDisplay}</p>
+                </div>
+                <div class="bg-black/20 rounded-lg p-2 text-center">
+                  <p class="text-[9px] text-gray-500">${t("medical.sugar")}</p>
+                  <p class="text-xs lg:text-sm font-mono font-medium text-white">${sugarDisplay}</p>
+                </div>
+                <div class="bg-black/20 rounded-lg p-2 text-center">
+                  <p class="text-[9px] text-gray-500">${t("medical.bmi")}</p>
+                  <p class="text-xs lg:text-sm font-mono font-medium text-white">${latest && latest.weight && latest.height ? (latest.weight / ((latest.height / 100) ** 2)).toFixed(1) : "--"}</p>
+                </div>
+              </div>
+              <div class="flex justify-between items-center text-[10px] text-gray-500">
+                <span><i class="fa-solid fa-file-medical mr-1"></i> ${medicalFiles.length} ${t("medical.documents")}</span>
+                <span>${latest ? new Date(latest.date).toLocaleDateString() : t("medical.noVitals").substring(0, 14) + "..."}</span>
+              </div>
+            </div>
+          </div>`;
+        });
+        if (!html) html = `<div class="col-span-full p-8 text-center text-gray-500 glass-panel rounded-xl"><i class="fa-solid fa-heart-pulse text-4xl mb-3 block opacity-50"></i>${t("home.noMembers")}</div>`;
+        grid.innerHTML = html;
+        document.getElementById("medical-detail").classList.add("hidden");
+        document.getElementById("medical-members-list").classList.remove("hidden");
+      }
+
+      function openMedicalDetail(personName) {
+        const person = appState.people.find(p => p.name === personName);
+        if (!person) return;
+        medicalSelectedPerson = personName;
+        document.getElementById("page-title").innerText = `${personName} — ${t("page.medical")}`;
+        document.getElementById("medical-member-name").innerText = personName;
+        document.getElementById("medical-members-list").classList.add("hidden");
+        document.getElementById("medical-detail").classList.remove("hidden");
+        document.getElementById("add-vitals-form").classList.add("hidden");
+        renderVitalsCards(personName);
+        renderVitalsTable(personName);
+        renderMedicalDocs(person);
+      }
+
+      function closeMedicalDetail() {
+        document.getElementById("medical-detail").classList.add("hidden");
+        document.getElementById("medical-members-list").classList.remove("hidden");
+        document.getElementById("page-title").innerText = t("page.medical");
+        medicalSelectedPerson = null;
+      }
+
+      function renderVitalsCards(personName) {
+        const latest = getLatestVitals(personName);
+        const cards = document.getElementById("medical-vitals-cards");
+        if (!latest) {
+          cards.innerHTML = `<div class="col-span-full text-center text-gray-500 text-sm py-3">${t("medical.noVitals")}</div>`;
+          return;
+        }
+        const bmi = latest.weight && latest.height ? (latest.weight / ((latest.height / 100) ** 2)).toFixed(1) : "--";
+        const items = [
+          { label: t("medical.bp"), value: latest.bpSystolic ? `${latest.bpSystolic}/${latest.bpDiastolic || "?"}` : "--", color: "rose", icon: "fa-heart" },
+          { label: t("medical.sugar"), value: latest.sugarFasting ? `${latest.sugarFasting} mg/dL` : "--", color: "amber", icon: "fa-droplet" },
+          { label: t("medical.weight"), value: latest.weight ? `${latest.weight} kg` : "--", color: "blue", icon: "fa-weight-scale" },
+          { label: "BMI", value: bmi, color: bmi > 25 ? "amber" : "green", icon: "fa-calculator" },
+        ];
+        cards.innerHTML = items.map(i =>
+          `<div class="glass-card p-3 lg:p-4 rounded-xl text-center">
+            <i class="fa-solid ${i.icon} text-${i.color}-400 text-lg lg:text-xl mb-2 block"></i>
+            <p class="text-xs text-gray-400">${i.label}</p>
+            <p class="text-base lg:text-lg font-semibold text-white mt-1">${i.value}</p>
+          </div>`
+        ).join("");
+      }
+
+      function renderVitalsTable(personName) {
+        const vitals = getPersonVitals(personName);
+        const tbody = document.getElementById("medical-vitals-table");
+        const empty = document.getElementById("medical-vitals-empty");
+
+        if (vitals.length === 0) {
+          tbody.innerHTML = "";
+          empty.classList.remove("hidden");
+          return;
+        }
+        empty.classList.add("hidden");
+        tbody.innerHTML = vitals.map((v, i) => {
+          const bmi = v.weight && v.height ? (v.weight / ((v.height / 100) ** 2)).toFixed(1) : "--";
+          return `<tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+            <td class="p-2 text-gray-300">${new Date(v.date).toLocaleDateString()}</td>
+            <td class="p-2 text-center font-mono text-white">${v.bpSystolic ? `${v.bpSystolic}/${v.bpDiastolic || "?"}` : "--"}</td>
+            <td class="p-2 text-center font-mono text-white">${v.sugarFasting || "--"}</td>
+            <td class="p-2 text-center font-mono text-white">${v.weight || "--"}</td>
+            <td class="p-2 text-center font-mono ${bmi > 25 ? "text-amber-400" : "text-green-400"}">${bmi}</td>
+            <td class="p-2 text-center font-mono text-white">${v.heartRate || "--"}</td>
+            <td class="p-2 text-gray-400 hidden lg:table-cell max-w-[120px] truncate">${v.notes || ""}</td>
+            <td class="p-2"><button onclick="deleteVitalsRow('${personName.replace(/'/g, "\\'")}', ${i})" class="text-red-400 hover:text-red-300 text-xs"><i class="fa-solid fa-trash"></i></button></td>
+          </tr>`;
+        }).join("");
+      }
+
+      function renderMedicalDocs(person) {
+        const medicalFiles = person.files.filter(f => isMedicalFile(f.name));
+        const grid = document.getElementById("medical-docs-grid");
+        const empty = document.getElementById("medical-docs-empty");
+
+        if (medicalFiles.length === 0) {
+          grid.innerHTML = "";
+          empty.classList.remove("hidden");
+          return;
+        }
+        empty.classList.add("hidden");
+
+        const categories = { lab: [], prescription: [], vaccine: [], other: [] };
+        medicalFiles.forEach(f => { categories[categorizeMedicalFile(f.name)].push(f); });
+
+        let html = "";
+        const catLabels = {
+          lab: { icon: "fa-flask", label: t("medical.labReports"), color: "purple" },
+          prescription: { icon: "fa-prescription", label: t("medical.prescriptions"), color: "blue" },
+          vaccine: { icon: "fa-syringe", label: t("medical.vaccinations"), color: "green" },
+          other: { icon: "fa-file-medical", label: t("medical.otherMedical"), color: "gray" }
+        };
+
+        Object.keys(catLabels).forEach(cat => {
+          if (categories[cat].length === 0) return;
+          const ci = catLabels[cat];
+          html += `<div class="col-span-full mt-2 first:mt-0"><div class="flex items-center mb-2"><i class="fa-solid ${ci.icon} text-${ci.color}-400 mr-2 text-sm"></i><span class="text-xs font-medium text-${ci.color}-300 uppercase tracking-wider">${ci.label} (${categories[cat].length})</span></div></div>`;
+          categories[cat].forEach(f => {
+            const icon = getFileIcon(f.mimeType);
+            const renewalInfo = appState.renewals.find(r => r.file.id === f.id);
+            const displayName = renewalInfo ? renewalInfo.cleanName : f.name;
+            html += `<div class="glass-card p-3 lg:p-4 rounded-xl flex items-center justify-between hover:bg-white/5 transition-colors">
+              <div class="flex items-center overflow-hidden pr-2">
+                <i class="fa-solid ${icon} text-lg w-6 text-center shrink-0"></i>
+                <div class="ml-2 lg:ml-3 truncate">
+                  <span class="text-xs lg:text-sm font-medium text-gray-200 truncate block">${displayName}</span>
+                  ${renewalInfo ? `<span class="text-[9px] ${renewalInfo.status === 'expired' ? 'text-red-400' : 'text-amber-400'}">${t("renewals.due")} ${renewalInfo.dateString}</span>` : ''}
+                </div>
+              </div>
+              <div class="flex space-x-1 shrink-0">
+                <button onclick="previewFile('${f.id}', '${f.name}')" class="text-gray-400 hover:text-white p-1.5"><i class="fa-regular fa-eye"></i></button>
+                <button onclick="downloadFile('${f.id}')" class="text-gray-400 hover:text-white p-1.5"><i class="fa-solid fa-download"></i></button>
+                <button onclick="shareViaWhatsApp('${f.name}', '${f.id}')" class="text-green-400 hover:text-green-300 p-1.5" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+              </div>
+            </div>`;
+          });
+        });
+        grid.innerHTML = html;
+      }
+
+      function showAddVitalsForm() {
+        document.getElementById("add-vitals-form").classList.remove("hidden");
+        document.getElementById("vital-date").value = new Date().toISOString().split("T")[0];
+      }
+
+      function hideAddVitalsForm() {
+        document.getElementById("add-vitals-form").classList.add("hidden");
+      }
+
+      function saveVitalsReading() {
+        const bpSystolic = parseInt(document.getElementById("vital-bp-sys").value) || null;
+        const bpDiastolic = parseInt(document.getElementById("vital-bp-dia").value) || null;
+        const sugarFasting = parseInt(document.getElementById("vital-sugar").value) || null;
+        const weight = parseFloat(document.getElementById("vital-weight").value) || null;
+        const height = parseFloat(document.getElementById("vital-height").value) || null;
+        const heartRate = parseInt(document.getElementById("vital-hr").value) || null;
+        const date = document.getElementById("vital-date").value || new Date().toISOString().split("T")[0];
+        const notes = document.getElementById("vital-notes").value.trim();
+
+        if (!bpSystolic && !sugarFasting && !weight && !heartRate) {
+          alert("Please enter at least one vital reading.");
+          return;
+        }
+
+        const reading = { date, bpSystolic, bpDiastolic, sugarFasting, weight, height, heartRate, notes };
+        const data = getVitalsData();
+        if (!data[medicalSelectedPerson]) data[medicalSelectedPerson] = [];
+        data[medicalSelectedPerson].push(reading);
+        saveVitalsData(data);
+
+        document.getElementById("vital-bp-sys").value = "";
+        document.getElementById("vital-bp-dia").value = "";
+        document.getElementById("vital-sugar").value = "";
+        document.getElementById("vital-weight").value = "";
+        document.getElementById("vital-height").value = "";
+        document.getElementById("vital-hr").value = "";
+        document.getElementById("vital-notes").value = "";
+        hideAddVitalsForm();
+        renderVitalsCards(medicalSelectedPerson);
+        renderVitalsTable(medicalSelectedPerson);
+      }
+
+      function deleteVitalsRow(personName, index) {
+        const data = getVitalsData();
+        if (!data[personName]) return;
+        const vitals = data[personName].sort((a, b) => new Date(b.date) - new Date(a.date));
+        vitals.splice(index, 1);
+        data[personName] = vitals;
+        saveVitalsData(data);
+        renderVitalsCards(personName);
+        renderVitalsTable(personName);
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // TOAST NOTIFICATION SYSTEM
+      // ═══════════════════════════════════════════════════════
+      function showToast(message, type = "info", duration = 3500) {
+        const container = document.getElementById("toast-container");
+        const toast = document.createElement("div");
+        const icons = { success: "fa-circle-check", error: "fa-circle-xmark", info: "fa-circle-info" };
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i> ${message}`;
+        container.appendChild(toast);
+        setTimeout(() => {
+          toast.classList.add("toast-out");
+          setTimeout(() => toast.remove(), 300);
+        }, duration);
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // API HELPER — POST to Google Apps Script
+      // ═══════════════════════════════════════════════════════
+      async function apiPost(params) {
+        if (!appState.config || !appState.config.appsScriptUrl) {
+          showToast("Configuration not loaded. Cannot perform action.", "error");
+          return null;
+        }
+        try {
+          const url = appState.config.appsScriptUrl;
+          // For uploadFile action, send JSON body; for others, send as form data
+          const isUpload = params.action === "uploadFile";
+          let response;
+          if (isUpload) {
+            response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(params)
+            });
+          } else {
+            const formData = new URLSearchParams();
+            Object.keys(params).forEach(k => formData.append(k, params[k]));
+            response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: formData.toString()
+            });
+          }
+          const result = await response.json();
+          if (!result.success) {
+            showToast(result.error || "Operation failed", "error");
+          }
+          return result;
+        } catch (err) {
+          showToast("Network error: " + err.message, "error");
+          return null;
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // ADD MEMBER
+      // ═══════════════════════════════════════════════════════
+      function openAddMemberModal() {
+        document.getElementById("new-member-name").value = "";
+        document.getElementById("modal-add-member").classList.remove("hidden-modal");
+      }
+      function closeAddMemberModal() {
+        document.getElementById("modal-add-member").classList.add("hidden-modal");
+      }
+      async function submitAddMember() {
+        const name = document.getElementById("new-member-name").value.trim();
+        if (!name) { showToast("Please enter a name.", "error"); return; }
+        const result = await apiPost({ action: "createFolder", parentType: "PEOPLE", folderName: name });
+        if (result && result.success) {
+          showToast("Member '" + name + "' added successfully!", "success");
+          closeAddMemberModal();
+          await forceSync();
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // ADD VEHICLE
+      // ═══════════════════════════════════════════════════════
+      function openAddVehicleModal() {
+        document.getElementById("new-vehicle-name").value = "";
+        document.getElementById("modal-add-vehicle").classList.remove("hidden-modal");
+      }
+      function closeAddVehicleModal() {
+        document.getElementById("modal-add-vehicle").classList.add("hidden-modal");
+      }
+      async function submitAddVehicle() {
+        const name = document.getElementById("new-vehicle-name").value.trim();
+        if (!name) { showToast("Please enter a vehicle name.", "error"); return; }
+        const result = await apiPost({ action: "createFolder", parentType: "VEHICLES", folderName: name });
+        if (result && result.success) {
+          showToast("Vehicle '" + name + "' added!", "success");
+          closeAddVehicleModal();
+          await forceSync();
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // ADD PROPERTY
+      // ═══════════════════════════════════════════════════════
+      function openAddPropertyModal() {
+        document.getElementById("new-property-name").value = "";
+        document.getElementById("modal-add-property").classList.remove("hidden-modal");
+      }
+      function closeAddPropertyModal() {
+        document.getElementById("modal-add-property").classList.add("hidden-modal");
+      }
+      async function submitAddProperty() {
+        const name = document.getElementById("new-property-name").value.trim();
+        if (!name) { showToast("Please enter a property name.", "error"); return; }
+        const result = await apiPost({ action: "createFolder", parentType: "PROPERTIES", folderName: name });
+        if (result && result.success) {
+          showToast("Property '" + name + "' added!", "success");
+          closeAddPropertyModal();
+          await forceSync();
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // DELETE ITEM (folder or file) — with confirmation
+      // ═══════════════════════════════════════════════════════
+      let pendingDelete = null; // { type, parentType, folderName, fileId, label }
+
+      function confirmDeleteFolder(parentType, folderName, label) {
+        pendingDelete = { type: "folder", parentType, folderName, label };
+        document.getElementById("confirm-delete-message").innerHTML =
+          `<span data-i18n="modal.deleteFolderWarning">Are you sure you want to delete </span><strong class="text-white">${label}</strong>?<br><span class="text-[10px] text-gray-500">(${t("modal.trashRecoverable")})</span>`;
+        applyTranslations();
+        document.getElementById("modal-confirm-delete").classList.remove("hidden-modal");
+      }
+
+      function confirmDeleteFile(fileId, fileName) {
+        pendingDelete = { type: "file", fileId, label: fileName };
+        document.getElementById("confirm-delete-message").innerHTML =
+          `<span data-i18n="modal.deleteFileWarning">Are you sure you want to delete </span><strong class="text-white">${fileName}</strong>?<br><span class="text-[10px] text-gray-500">(${t("modal.trashRecoverable")})</span>`;
+        applyTranslations();
+        document.getElementById("modal-confirm-delete").classList.remove("hidden-modal");
+      }
+
+      function closeConfirmModal() {
+        document.getElementById("modal-confirm-delete").classList.add("hidden-modal");
+        pendingDelete = null;
+      }
+
+      async function executeDelete() {
+        if (!pendingDelete) return;
+        const d = pendingDelete;
+        const wasFolderDelete = d.type === "folder";
+        const deletedParentType = d.parentType;
+        closeConfirmModal();
+        let result;
+        if (d.type === "folder") {
+          result = await apiPost({ action: "deleteFolder", parentType: d.parentType, folderName: d.folderName });
+        } else if (d.type === "file") {
+          result = await apiPost({ action: "deleteFile", fileId: d.fileId });
+        }
+        if (result && result.success) {
+          showToast("'" + d.label + "' deleted successfully!", "success");
+          await forceSync();
+          // Navigate back to list view if we deleted a folder
+          if (wasFolderDelete) {
+            if (deletedParentType === "PEOPLE") navigate("members");
+            else if (deletedParentType === "VEHICLES") navigate("vehicles");
+            else if (deletedParentType === "PROPERTIES") navigate("properties");
+          }
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // FILE UPLOAD
+      // ═══════════════════════════════════════════════════════
+      let uploadTarget = null; // { parentType, folderName }
+      let selectedFile = null;
+
+      function openUploadModal(parentType, folderName) {
+        uploadTarget = { parentType, folderName };
+        selectedFile = null;
+        document.getElementById("upload-target-info").innerHTML =
+          `<i class="fa-solid fa-folder-open mr-1 text-gray-500"></i> ${parentType === "SHARED" ? "Shared Documents" : folderName}`;
+        document.getElementById("upload-file-preview").classList.add("hidden");
+        document.getElementById("upload-drop-zone").classList.remove("hidden");
+        document.getElementById("upload-submit-btn").disabled = true;
+        document.getElementById("upload-file-input").value = "";
+        document.getElementById("modal-upload-file").classList.remove("hidden-modal");
+      }
+
+      function closeUploadModal() {
+        document.getElementById("modal-upload-file").classList.add("hidden-modal");
+        uploadTarget = null;
+        selectedFile = null;
+      }
+
+      function onFileSelected(input) {
+        if (input.files && input.files[0]) {
+          const file = input.files[0];
+          if (file.size > 5 * 1024 * 1024) {
+            showToast("File too large. Max 5 MB.", "error");
+            input.value = "";
+            return;
+          }
+          selectedFile = file;
+          document.getElementById("upload-file-name").textContent = file.name;
+          document.getElementById("upload-file-icon").className = "fa-solid " + getFileIcon(file.type || "application/octet-stream") + " mr-2";
+          document.getElementById("upload-file-preview").classList.remove("hidden");
+          document.getElementById("upload-drop-zone").classList.add("hidden");
+          document.getElementById("upload-submit-btn").disabled = false;
+        }
+      }
+
+      function clearFileSelection() {
+        selectedFile = null;
+        document.getElementById("upload-file-input").value = "";
+        document.getElementById("upload-file-preview").classList.add("hidden");
+        document.getElementById("upload-drop-zone").classList.remove("hidden");
+        document.getElementById("upload-submit-btn").disabled = true;
+      }
+
+      async function submitFileUpload() {
+        if (!selectedFile || !uploadTarget) return;
+        const btn = document.getElementById("upload-submit-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
+
+        try {
+          // Read file as base64
+          const base64 = await fileToBase64(selectedFile);
+          const result = await apiPost({
+            action: "uploadFile",
+            parentType: uploadTarget.parentType,
+            folderName: uploadTarget.folderName,
+            fileName: selectedFile.name,
+            fileData: base64,
+            mimeType: selectedFile.type || "application/octet-stream"
+          });
+          if (result && result.success) {
+            showToast("File '" + selectedFile.name + "' uploaded!", "success");
+            closeUploadModal();
+            await forceSync();
+          } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
+          }
+        } catch (err) {
+          showToast("Upload failed: " + err.message, "error");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
+        }
+      }
+
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            // Strip the data:...;base64, prefix
+            const base64 = reader.result.split(",")[1];
+            resolve(base64);
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // ── Drag & Drop for upload modal ──
+      document.addEventListener("DOMContentLoaded", () => {
+        const dropZone = document.getElementById("upload-drop-zone");
+        if (!dropZone) return;
+        ["dragenter", "dragover"].forEach(evt => {
+          dropZone.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add("drag-over"); });
+        });
+        ["dragleave", "drop"].forEach(evt => {
+          dropZone.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove("drag-over"); });
+        });
+        dropZone.addEventListener("drop", (e) => {
+          const files = e.dataTransfer.files;
+          if (files && files[0]) {
+            document.getElementById("upload-file-input").files = files;
+            onFileSelected(document.getElementById("upload-file-input"));
+          }
+        });
+      });
+
+      // ── Wire up confirm delete button ──
+      document.addEventListener("DOMContentLoaded", () => {
+        const confirmBtn = document.getElementById("confirm-delete-btn");
+        if (confirmBtn) confirmBtn.addEventListener("click", executeDelete);
+      });
+
+      // ═══════════════════════════════════════════════════════
+      // Search
+      // ═══════════════════════════════════════════════════════
+      const searchInput = document.getElementById("searchInput");
+      const searchResults = document.getElementById("searchResults");
+
+      searchInput.addEventListener("input", (e) => {
+        const term = e.target.value.toLowerCase().trim();
+        if (term.length < 2) { searchResults.classList.add("hidden"); return; }
+        const results = appState.driveData
+          .filter(f => f.name.toLowerCase().includes(term) || (f.parentName && f.parentName.toLowerCase().includes(term)))
+          .slice(0, 8);
+        if (results.length === 0) {
+          searchResults.innerHTML = `<div class="p-4 text-sm text-gray-400 text-center">${t("search.noResults")}</div>`;
+        } else {
+          let html = "";
+          results.forEach((file) => {
+            const icon = getFileIcon(file.mimeType);
+            html += `<div class="flex items-center justify-between p-3 border-b border-white/10 hover:bg-white/10 cursor-pointer transition-colors" onclick="previewFile('${file.id}', '${file.name}')">
+              <div class="flex items-center overflow-hidden">
+                <i class="fa-solid ${icon} w-6 text-center shrink-0"></i>
+                <div class="ml-3 truncate">
+                  <p class="text-xs lg:text-sm font-medium text-white/90 truncate">${file.name}</p>
+                  ${file.parentName ? `<p class="text-[10px] text-gray-400 truncate">${file.parentName}</p>` : ""}
+                </div>
+              </div>
+            </div>`;
+          });
+          searchResults.innerHTML = html;
+        }
+        searchResults.classList.remove("hidden");
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+          searchResults.classList.add("hidden");
+        }
+      });
+    </script>
+  </body>
+</html>

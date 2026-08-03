@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ParivarVault — Test Suite</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 10px; }
+    h1 i { color: #3b82f6; }
+    .subtitle { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .summary { display: flex; gap: 15px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .summary-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px 20px; min-width: 100px; text-align: center; }
+    .summary-card .num { font-size: 2rem; font-weight: 700; }
+    .summary-card .label { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+    .summary-card.total .num { color: #60a5fa; }
+    .summary-card.passed .num { color: #4ade80; }
+    .summary-card.failed .num { color: #f87171; }
+    .suite { margin-bottom: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
+    .suite-header { background: rgba(255,255,255,0.05); padding: 10px 16px; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+    .suite-header .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; }
+    .suite-header .badge.pass { background: rgba(74,222,128,0.2); color: #4ade80; }
+    .suite-header .badge.fail { background: rgba(248,113,113,0.2); color: #f87171; }
+    .test-row { padding: 8px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.82rem; display: flex; align-items: flex-start; gap: 10px; }
+    .test-row:last-child { border-bottom: none; }
+    .test-row.pass .icon { color: #4ade80; }
+    .test-row.fail .icon { color: #f87171; }
+    .test-row .icon { width: 18px; text-align: center; flex-shrink: 0; margin-top: 1px; }
+    .test-row .desc { flex: 1; }
+    .test-row .detail { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; }
+    .test-row.fail .detail { color: #fca5a5; }
+    .actions { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+    button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+    button:hover { background: rgba(255,255,255,0.2); }
+    button.run { background: #3b82f6; border-color: #3b82f6; }
+    button.run:hover { background: #2563eb; }
+    .loading { text-align: center; padding: 40px; color: #94a3b8; }
+    .loader { border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top: 3px solid #3b82f6; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <h1><i class="fa-solid fa-flask"></i> ParivarVault Test Suite</h1>
+  <p class="subtitle">Automated tests for core logic — run before every feature push</p>
+
+  <div class="summary" id="summary"></div>
+  <div id="results"></div>
+  <div class="actions">
+    <button class="run" onclick="runTests()"><i class="fa-solid fa-play"></i> Run All Tests</button>
+    <button onclick="location.reload()"><i class="fa-solid fa-rotate"></i> Reset</button>
+  </div>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="./tests.js"></script>
+  <script>
+    function runTests() {
+      document.getElementById("results").innerHTML = '<div class="loading"><div class="loader"></div>Running tests…</div>';
+      document.getElementById("summary").innerHTML = "";
+
+      setTimeout(() => {
+        const summary = runAllTests();
+
+        // Summary cards
+        document.getElementById("summary").innerHTML = `
+          <div class="summary-card total"><div class="num">${summary.total}</div><div class="label">Total Tests</div></div>
+          <div class="summary-card passed"><div class="num">${summary.passed}</div><div class="label">Passed ✅</div></div>
+          <div class="summary-card failed"><div class="num">${summary.failed}</div><div class="label">Failed ❌</div></div>
+        `;
+
+        // Group by suite
+        const suites = {};
+        summary.results.forEach((r) => {
+          if (!suites[r.suite]) suites[r.suite] = { results: [], passed: 0, failed: 0 };
+          suites[r.suite].results.push(r);
+          if (r.passed) suites[r.suite].passed++;
+          else suites[r.suite].failed++;
+        });
+
+        let html = "";
+        Object.keys(suites).forEach((name) => {
+          const s = suites[name];
+          const badge = s.failed === 0 ? '<span class="badge pass">ALL PASS</span>' : `<span class="badge fail">${s.failed} FAIL</span>`;
+          html += `<div class="suite">
+            <div class="suite-header">📋 ${name} ${badge}</div>`;
+          s.results.forEach((r) => {
+            html += `<div class="test-row ${r.passed ? 'pass' : 'fail'}">
+              <span class="icon">${r.passed ? '✅' : '❌'}</span>
+              <div>
+                <div class="desc">${r.description}</div>
+                ${!r.passed ? `<div class="detail">Expected: ${r.expected} | Actual: ${r.actual}</div>` : ''}
+              </div>
+            </div>`;
+          });
+          html += `</div>`;
+        });
+        document.getElementById("results").innerHTML = html;
+      }, 100);
+    }
+
+    // Auto-run on load
+    window.addEventListener("DOMContentLoaded", runTests);
+  </script>
+</body>
+</html>

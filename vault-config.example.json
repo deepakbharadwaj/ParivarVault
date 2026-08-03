@@ -1,0 +1,36 @@
+{
+  "_comment": "═══════════════════════════════════════════════════",
+  "_instructions": "Copy this file to vault-config.json and fill in YOUR values. NEVER commit vault-config.json to git!",
+  "_appsScriptGuide": "1. Go to https://script.google.com 2. Create a new project 3. Paste the code from apps-script/Code.gs 4. Deploy as Web App (Execute as: Me, Access: Anyone) 5. Copy the deployment URL below",
+  "appsScriptUrl": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+
+  "_bankAccountsGuide": "Add bank account details for each family member. This data NEVER leaves your browser — it's stored only in your local vault-config.json and your browser's localStorage.",
+  "bankAccounts": [
+    {
+      "person": "Dad",
+      "banks": [
+        {
+          "bankName": "State Bank of India",
+          "accNumber": "XXXXXXXXXXXX",
+          "ifsc": "SBIN0000000",
+          "branch": "Your Branch Name",
+          "Primary Account Holder": "Dad's Full Name"
+        }
+      ]
+    },
+    {
+      "person": "Mom",
+      "banks": [
+        {
+          "bankName": "HDFC Bank",
+          "accNumber": "XXXXXXXXXXXX",
+          "ifsc": "HDFC0000000",
+          "branch": "Your Branch Name",
+          "Primary Account Holder": "Mom's Full Name"
+        }
+      ]
+    }
+  ],
+
+  "_googleDriveStructure": "Create these folders in your Google Drive root: People/[Name]/ (with subfolders for Aadhaar, PAN, etc.), Vehicles/[VehicleName]/, Properties/[PropertyName]/, Shared_Documents/"
+}
