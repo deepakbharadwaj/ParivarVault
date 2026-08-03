@@ -402,9 +402,19 @@
           
           <div class="flex items-center justify-between mb-6 lg:mb-8 bg-black/20 p-4 lg:p-6 rounded-2xl border border-white/5">
             <div class="flex items-center">
-              <div id="detail-photo-container"></div>
+              <div id="detail-photo-container" class="relative group/photo cursor-pointer" onclick="triggerPhotoUpload('PEOPLE', currentDetailName)" title="Click to upload profile photo">
+                <div id="detail-photo-inner"></div>
+                <div class="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center z-20">
+                  <i class="fa-solid fa-camera text-white text-lg"></i>
+                </div>
+              </div>
               <div class="ml-4 lg:ml-6">
-                <h2 id="detail-name" class="text-2xl lg:text-3xl font-semibold">Name</h2>
+                <div class="flex items-center">
+                  <h2 id="detail-name" class="text-2xl lg:text-3xl font-semibold">Name</h2>
+                  <button id="detail-edit-name-btn" onclick="openRenameModal(currentDetailParentType, currentDetailName)" class="ml-2 w-8 h-8 rounded-full glass-button flex items-center justify-center text-gray-400 hover:text-amber-400 transition-colors" title="Rename">
+                    <i class="fa-solid fa-pen-to-square text-xs"></i>
+                  </button>
+                </div>
                 <p class="text-xs lg:text-sm text-gray-400 mt-1" data-i18n="detail.personalProfile">Personal Profile</p>
               </div>
             </div>
@@ -583,10 +593,17 @@
         <div id="view-setup" class="view-section hidden flex-col items-center justify-center h-full text-center max-w-2xl mx-auto">
           <i class="fa-solid fa-gear text-5xl lg:text-6xl text-blue-400 mb-6"></i>
           <h2 class="text-xl lg:text-2xl font-semibold mb-4" data-i18n="setup.title">Configuration Required</h2>
-          <p class="text-sm lg:text-base text-gray-400 mb-6 px-6" data-i18n="setup.subtitle">The application could not find <code>vault-config.json</code> in the root directory.</p>
+          <p class="text-sm lg:text-base text-gray-400 mb-2 px-6" data-i18n="setup.subtitle">The application could not find <code>vault-config.json</code> in the root directory.</p>
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 text-left max-w-md mx-auto">
+            <p class="text-xs text-amber-300 mb-2"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Common fix:</strong></p>
+            <p class="text-xs text-gray-300 mb-1">Did you double-click <code>index.html</code> to open it? Browsers block local file access. Instead, serve the folder:</p>
+            <code class="text-xs text-green-300 bg-black/30 px-2 py-1 rounded block mt-2">python3 -m http.server 8080</code>
+            <p class="text-xs text-gray-400 mt-2">Then open <strong>http://localhost:8080</strong> in your browser.</p>
+          </div>
           <button onclick="startDemoMode()" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/30">
             <i class="fa-solid fa-play mr-2"></i> <span data-i18n="setup.demo">Launch Demo Mode</span>
           </button>
+          <p class="text-[10px] text-gray-500 mt-3">Demo mode uses sample data — no Google Drive connection needed.</p>
         </div>
       </div>
     </main>
@@ -716,6 +733,71 @@
           <button onclick="submitAddProperty()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors flex items-center justify-center">
             <i class="fa-solid fa-plus mr-2"></i> <span data-i18n="modal.createProperty">Add Property</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Rename Item Modal ─── -->
+    <div id="modal-rename-item" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeRenameModal()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-pen-to-square text-amber-400 mr-2"></i><span data-i18n="modal.renameTitle">Rename</span></h3>
+          <button onclick="closeRenameModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        <div id="rename-current-name" class="text-xs text-gray-400 mb-4 bg-white/5 rounded-lg p-3"></div>
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="modal.newName">New Name</label>
+            <input id="rename-new-name" type="text" class="modal-input" placeholder="Enter new name" />
+          </div>
+          <button onclick="submitRename()" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium transition-colors flex items-center justify-center">
+            <i class="fa-solid fa-check mr-2"></i> <span data-i18n="modal.saveChanges">Save Changes</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Update Due Date Modal ─── -->
+    <div id="modal-update-due-date" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeUpdateDueDateModal()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-calendar-pen text-amber-400 mr-2"></i><span>Update Due Date</span></h3>
+          <button onclick="closeUpdateDueDateModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        <div id="due-date-file-info" class="text-xs text-gray-400 mb-4 bg-white/5 rounded-lg p-3"></div>
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5">Next Due Date</label>
+            <input id="update-due-date-input" type="date" class="modal-input" />
+          </div>
+          <p class="text-[10px] text-gray-500">The file will be renamed to include the new due date for tracking.</p>
+          <button onclick="submitUpdateDueDate()" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium transition-colors flex items-center justify-center">
+            <i class="fa-solid fa-calendar-check mr-2"></i> Update Due Date
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Upload with Due Date Modal (enhanced upload) ─── -->
+    <div id="modal-upload-with-due" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeUploadWithDueModal()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-calendar-plus text-blue-400 mr-2"></i><span>Set Due Date (Optional)</span></h3>
+          <button onclick="closeUploadWithDueModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        <div id="due-prompt-file-info" class="text-xs text-gray-400 mb-4 bg-white/5 rounded-lg p-3"></div>
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5">When is the next due date? (optional)</label>
+            <input id="due-date-prompt-input" type="date" class="modal-input" />
+          </div>
+          <p class="text-[10px] text-gray-500">If set, the file will be renamed with "_due_YYYY-MM-DD" for renewal tracking. Leave blank to skip.</p>
+          <div class="flex space-x-3">
+            <button onclick="submitUploadWithDueDate()" class="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors flex items-center justify-center">
+              <i class="fa-solid fa-check mr-2"></i> Continue Upload
+            </button>
+            <button onclick="skipDueDateUpload()" class="glass-button px-4 py-2.5 rounded-xl text-sm text-gray-400">Skip</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1068,6 +1150,9 @@
           await syncVaultData(false);
         } catch (error) {
           console.warn("Configuration missing, showing setup screen.", error);
+          console.info("💡 TIP: If you opened index.html directly (file:// URL), browsers block fetch().");
+          console.info("   Run: python3 -m http.server 8080  then open http://localhost:8080");
+          console.info("   OR if vault-config.json has a syntax error, validate it at jsonlint.com");
           document.getElementById("loading-state").classList.add("hidden");
           appState.bankData = DEFAULT_BANK_DATA;
           showView("setup");
@@ -1329,7 +1414,12 @@
             <div class="p-5 lg:p-6 flex items-center cursor-pointer" onclick="openMemberDetail('${escapedName}')">
               ${profileHtml}
               <div class="ml-4 overflow-hidden flex-1">
-                <h3 class="text-lg lg:text-xl font-medium text-white group-hover:text-blue-400 transition-colors truncate">${person.name}</h3>
+                <div class="flex items-center">
+                  <h3 class="text-lg lg:text-xl font-medium text-white group-hover:text-blue-400 transition-colors truncate">${person.name}</h3>
+                  <button onclick="event.stopPropagation(); openRenameModal('PEOPLE', '${escapedName}')" class="ml-2 w-7 h-7 rounded-full glass-button flex items-center justify-center text-gray-400 hover:text-amber-400 transition-colors opacity-0 group-hover:opacity-100" title="Rename">
+                    <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                  </button>
+                </div>
                 <p class="text-xs text-gray-400 mt-1">${person.files.length} ${t("detail.docsManaged")}</p>
               </div>
             </div>
@@ -1345,8 +1435,13 @@
         const person = appState.people.find((p) => p.name === personName);
         if (!person) return;
 
+        // Set current detail context for rename + photo upload
+        window.currentDetailName = person.name;
+        window.currentDetailParentType = "PEOPLE";
+
         document.getElementById("page-title").innerText = `${person.name}${t("detail.vault")}`;
         document.getElementById("detail-name").innerText = person.name;
+        document.getElementById("detail-edit-name-btn").onclick = () => openRenameModal("PEOPLE", person.name);
 
         // Wire up upload & delete buttons
         const escapedName = person.name.replace(/'/g, "\\'");
@@ -1355,7 +1450,9 @@
 
         const photoFile = getDocumentFormat(person.files, PERSON_DOC_TYPES.find(t => t.isPhoto));
         const photoContainer = document.getElementById("detail-photo-container");
-        photoContainer.innerHTML = generateProfileHTML(photoFile, "h-16 w-16 lg:h-20 lg:w-20 rounded-full border-2 border-white/20", "text-2xl lg:text-3xl");
+        const photoInner = document.getElementById("detail-photo-inner");
+        photoInner.innerHTML = generateProfileHTML(photoFile, "h-16 w-16 lg:h-20 lg:w-20 rounded-full border-2 border-white/20", "text-2xl lg:text-3xl");
+        photoContainer.onclick = () => triggerPhotoUpload("PEOPLE", person.name);
 
         const matchedFileIds = new Set();
         if (photoFile.img) matchedFileIds.add(photoFile.img.id);
@@ -1515,13 +1612,18 @@
               </div>
             </div>`;
           });
-          html += `<div class="glass-panel rounded-2xl p-4 lg:p-6 relative">
+          html += `<div class="glass-panel rounded-2xl p-4 lg:p-6 relative group">
             <button onclick="event.stopPropagation(); confirmDeleteFolder('VEHICLES', '${escapedName}', '${escapedName}')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-red-500/10 hover:bg-red-500/30 text-red-400 hover:text-red-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10" title="Delete vehicle">
               <i class="fa-solid fa-trash text-xs"></i>
             </button>
             <div class="flex items-center mb-4 lg:mb-6">
               <div class="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 text-lg lg:text-xl shrink-0"><i class="fa-solid fa-car"></i></div>
-              <h3 class="ml-3 lg:ml-4 text-base lg:text-lg font-medium text-white truncate">${veh.name}</h3>
+              <div class="ml-3 lg:ml-4 flex-1 flex items-center">
+                <h3 class="text-base lg:text-lg font-medium text-white truncate">${veh.name}</h3>
+                <button onclick="event.stopPropagation(); openRenameModal('VEHICLES', '${escapedName}')" class="ml-2 w-7 h-7 rounded-full glass-button flex items-center justify-center text-gray-400 hover:text-amber-400 transition-colors opacity-0 group-hover:opacity-100" title="Rename">
+                  <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                </button>
+              </div>
             </div>
             <div class="bg-black/10 rounded-xl p-3 lg:p-4">${docsHtml || `<p class="text-xs text-gray-500">${t("docCards.noDocsFound")}</p>`}</div>
             <button onclick="openUploadModal('VEHICLES', '${escapedName}')" class="mt-3 w-full glass-button py-2 rounded-lg text-xs flex items-center justify-center text-blue-400 hover:text-blue-300">
@@ -1563,13 +1665,18 @@
               </div>
             </div>`;
           });
-          html += `<div class="glass-panel rounded-2xl p-4 lg:p-6 relative">
+          html += `<div class="glass-panel rounded-2xl p-4 lg:p-6 relative group">
             <button onclick="event.stopPropagation(); confirmDeleteFolder('PROPERTIES', '${escapedName}', '${escapedName}')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-red-500/10 hover:bg-red-500/30 text-red-400 hover:text-red-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10" title="Delete property">
               <i class="fa-solid fa-trash text-xs"></i>
             </button>
             <div class="flex items-center mb-4 lg:mb-6">
               <div class="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg lg:text-xl shrink-0"><i class="fa-solid fa-house"></i></div>
-              <h3 class="ml-3 lg:ml-4 text-base lg:text-lg font-medium text-white truncate">${prop.name}</h3>
+              <div class="ml-3 lg:ml-4 flex-1 flex items-center">
+                <h3 class="text-base lg:text-lg font-medium text-white truncate">${prop.name}</h3>
+                <button onclick="event.stopPropagation(); openRenameModal('PROPERTIES', '${escapedName}')" class="ml-2 w-7 h-7 rounded-full glass-button flex items-center justify-center text-gray-400 hover:text-amber-400 transition-colors opacity-0 group-hover:opacity-100" title="Rename">
+                  <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                </button>
+              </div>
             </div>
             <div class="bg-black/10 rounded-xl p-3 lg:p-4">${docsHtml || `<p class="text-xs text-gray-500">${t("docCards.noDocsFound")}</p>`}</div>
             <button onclick="openUploadModal('PROPERTIES', '${escapedName}')" class="mt-3 w-full glass-button py-2 rounded-lg text-xs flex items-center justify-center text-blue-400 hover:text-blue-300">
@@ -1609,6 +1716,8 @@
                 <button onclick="previewFile('${r.file.id}', '${r.file.name}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-gray-300 hover:text-white"><i class="fa-regular fa-eye"></i></button>
                 <button onclick="downloadFile('${r.file.id}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-gray-300 hover:text-white"><i class="fa-solid fa-download"></i></button>
                 <button onclick="shareViaWhatsApp('${r.cleanName}', '${r.file.id}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+                <button onclick="openUpdateDueDateModal('${r.file.id}', '${r.file.name.replace(/'/g, "\\'")}', '${r.dateString}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-amber-400 hover:text-amber-300" title="Update Due Date"><i class="fa-solid fa-calendar-pen text-xs"></i></button>
+                <button onclick="event.stopPropagation(); confirmDeleteFile('${r.file.id}', '${r.file.name.replace(/'/g, "\\'")}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-red-400 hover:text-red-300" title="Delete"><i class="fa-solid fa-trash text-xs"></i></button>
               </div>
             </div>
           </div>`;
@@ -2300,34 +2409,8 @@
 
       async function submitFileUpload() {
         if (!selectedFile || !uploadTarget) return;
-        const btn = document.getElementById("upload-submit-btn");
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
-
-        try {
-          // Read file as base64
-          const base64 = await fileToBase64(selectedFile);
-          const result = await apiPost({
-            action: "uploadFile",
-            parentType: uploadTarget.parentType,
-            folderName: uploadTarget.folderName,
-            fileName: selectedFile.name,
-            fileData: base64,
-            mimeType: selectedFile.type || "application/octet-stream"
-          });
-          if (result && result.success) {
-            showToast("File '" + selectedFile.name + "' uploaded!", "success");
-            closeUploadModal();
-            await forceSync();
-          } else {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
-          }
-        } catch (err) {
-          showToast("Upload failed: " + err.message, "error");
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
-        }
+        // Prompt for optional due date before uploading
+        promptDueDateForUpload(selectedFile);
       }
 
       function fileToBase64(file) {
@@ -2341,6 +2424,206 @@
           reader.onerror = () => reject(new Error("Failed to read file"));
           reader.readAsDataURL(file);
         });
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // RENAME ITEM — Edit name of member, vehicle, property
+      // ═══════════════════════════════════════════════════════
+      let renameTarget = null; // { parentType, oldName }
+
+      function openRenameModal(parentType, oldName) {
+        renameTarget = { parentType, oldName };
+        document.getElementById("rename-current-name").innerHTML =
+          `<i class="fa-solid fa-file-signature mr-1 text-gray-500"></i> Current name: <strong class="text-white">${oldName}</strong>`;
+        document.getElementById("rename-new-name").value = oldName;
+        document.getElementById("modal-rename-item").classList.remove("hidden-modal");
+        setTimeout(() => document.getElementById("rename-new-name").focus(), 100);
+      }
+
+      function closeRenameModal() {
+        document.getElementById("modal-rename-item").classList.add("hidden-modal");
+        renameTarget = null;
+      }
+
+      async function submitRename() {
+        if (!renameTarget) return;
+        const newName = document.getElementById("rename-new-name").value.trim();
+        if (!newName) { showToast("Please enter a new name.", "error"); return; }
+        if (newName === renameTarget.oldName) { closeRenameModal(); return; }
+
+        const result = await apiPost({
+          action: "renameFolderByName",
+          parentType: renameTarget.parentType,
+          oldName: renameTarget.oldName,
+          newName: newName
+        });
+
+        if (result && result.success) {
+          showToast(`Renamed "${result.oldName}" → "${result.newName}"`, "success");
+          closeRenameModal();
+          await forceSync();
+        }
+      }
+
+      // Allow Enter key to submit rename
+      document.addEventListener("DOMContentLoaded", () => {
+        const renameInput = document.getElementById("rename-new-name");
+        if (renameInput) {
+          renameInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") submitRename();
+          });
+        }
+      });
+
+      // ═══════════════════════════════════════════════════════
+      // PHOTO UPLOAD — Upload profile pic for any entity
+      // ═══════════════════════════════════════════════════════
+      function triggerPhotoUpload(parentType, folderName) {
+        if (appState.isDemo) {
+          showToast("Photo upload not available in demo mode.", "info");
+          return;
+        }
+        // Create a hidden file input for photo selection
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.onchange = async () => {
+          if (!input.files || !input.files[0]) return;
+          const file = input.files[0];
+          if (file.size > 5 * 1024 * 1024) {
+            showToast("Photo too large. Max 5 MB.", "error");
+            return;
+          }
+          try {
+            showToast("Uploading photo...", "info", 1500);
+            const base64 = await fileToBase64(file);
+            const result = await apiPost({
+              action: "uploadFile",
+              parentType: parentType,
+              folderName: folderName,
+              fileName: "photo_" + file.name,
+              fileData: base64,
+              mimeType: file.type || "image/jpeg"
+            });
+            if (result && result.success) {
+              showToast("Profile photo uploaded!", "success");
+              await forceSync();
+            }
+          } catch (err) {
+            showToast("Photo upload failed: " + err.message, "error");
+          }
+        };
+        input.click();
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // UPDATE DUE DATE — Change renewal date on a file
+      // ═══════════════════════════════════════════════════════
+      let updateDueDateTarget = null; // { fileId, fileName }
+
+      function openUpdateDueDateModal(fileId, fileName, currentDateStr) {
+        updateDueDateTarget = { fileId, fileName };
+        document.getElementById("due-date-file-info").innerHTML =
+          `<i class="fa-solid fa-file mr-1 text-gray-500"></i> <strong class="text-white">${fileName}</strong>` +
+          (currentDateStr ? `<br><span class="text-[10px] text-amber-400">Current due date: ${currentDateStr}</span>` : "");
+        document.getElementById("update-due-date-input").value = currentDateStr || "";
+        document.getElementById("modal-update-due-date").classList.remove("hidden-modal");
+      }
+
+      function closeUpdateDueDateModal() {
+        document.getElementById("modal-update-due-date").classList.add("hidden-modal");
+        updateDueDateTarget = null;
+      }
+
+      async function submitUpdateDueDate() {
+        if (!updateDueDateTarget) return;
+        const newDueDate = document.getElementById("update-due-date-input").value;
+        if (!newDueDate) { showToast("Please select a due date.", "error"); return; }
+
+        const result = await apiPost({
+          action: "updateDueDate",
+          fileId: updateDueDateTarget.fileId,
+          newDueDate: newDueDate
+        });
+
+        if (result && result.success) {
+          showToast(`Due date updated: ${result.newName}`, "success");
+          closeUpdateDueDateModal();
+          await forceSync();
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // ENHANCED UPLOAD — With optional due date
+      // ═══════════════════════════════════════════════════════
+      let pendingUploadFile = null; // The file awaiting due-date confirmation
+
+      function promptDueDateForUpload(file) {
+        pendingUploadFile = file;
+        document.getElementById("due-prompt-file-info").innerHTML =
+          `<i class="fa-solid fa-file mr-1 text-gray-500"></i> <strong class="text-white">${file.name}</strong>`;
+        document.getElementById("due-date-prompt-input").value = "";
+        document.getElementById("modal-upload-with-due").classList.remove("hidden-modal");
+      }
+
+      function closeUploadWithDueModal() {
+        document.getElementById("modal-upload-with-due").classList.add("hidden-modal");
+        pendingUploadFile = null;
+      }
+
+      async function submitUploadWithDueDate() {
+        if (!pendingUploadFile || !uploadTarget) return;
+        const dueDate = document.getElementById("due-date-prompt-input").value;
+        closeUploadWithDueModal();
+        await doActualUpload(pendingUploadFile, dueDate || null);
+      }
+
+      async function skipDueDateUpload() {
+        if (!pendingUploadFile || !uploadTarget) return;
+        closeUploadWithDueModal();
+        await doActualUpload(pendingUploadFile, null);
+      }
+
+      async function doActualUpload(file, dueDate) {
+        const btn = document.getElementById("upload-submit-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
+
+        try {
+          // Determine file name - add due date if provided
+          let uploadFileName = file.name;
+          if (dueDate) {
+            const lastDot = uploadFileName.lastIndexOf(".");
+            if (lastDot > 0) {
+              uploadFileName = uploadFileName.substring(0, lastDot) + "_due_" + dueDate + uploadFileName.substring(lastDot);
+            } else {
+              uploadFileName = uploadFileName + "_due_" + dueDate;
+            }
+          }
+
+          const base64 = await fileToBase64(file);
+          const result = await apiPost({
+            action: "uploadFile",
+            parentType: uploadTarget.parentType,
+            folderName: uploadTarget.folderName,
+            fileName: uploadFileName,
+            fileData: base64,
+            mimeType: file.type || "application/octet-stream"
+          });
+
+          if (result && result.success) {
+            showToast("File '" + uploadFileName + "' uploaded!", "success");
+            closeUploadModal();
+            await forceSync();
+          } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
+          }
+        } catch (err) {
+          showToast("Upload failed: " + err.message, "error");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
+        }
       }
 
       // ── Drag & Drop for upload modal ──

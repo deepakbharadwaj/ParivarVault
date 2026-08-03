@@ -40,12 +40,20 @@ When deploying your Google Apps Script, set:
 - **Execute as: Me** (NOT "User accessing the web app")
 - **Who has access: Only myself** (or "Anyone" only if you add authentication)
 
-### 3. Host privately
-Do NOT expose this application on the public internet without adding authentication. Host it on:
+### 3. Secure Deployment
+
+**Recommended: Cloudflare Pages + Zero Trust Access (FREE)**
+See [README.md](README.md#-deploy-to-cloudflare-pages--zero-trust-free-secure) for the complete guide. This gives you:
+- Global CDN with free HTTPS
+- Authentication layer (Google OAuth or Email OTP) — only your approved family members can access
+- Free for up to 50 users
+
+**Alternative: Private hosting**
+If not using Cloudflare, host on:
 - Local machine (`localhost`)
-- Home server (Raspberry Pi, NAS)
-- Private network
-- Password-protected web server
+- Home server (Raspberry Pi, NAS) behind VPN
+- Private network with HTTP Basic Auth
+- Any static host with a reverse proxy that adds authentication
 
 ### 4. Use HTTPS
 Always serve over HTTPS when accessing remotely. HTTP exposes data in transit.

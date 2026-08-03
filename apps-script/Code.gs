@@ -6,43 +6,81 @@
  * SETUP:
  * 1. Go to https://script.google.com
  * 2. Create a new project, paste this entire file
- * 3. Deploy → New Deployment → Web App
+ * 3. (Optional) Set VAULT_ROOT_FOLDER_ID below if you want to use a 
+ *    specific existing folder instead of auto-creating "ParivarVault"
+ * 4. Deploy → New Deployment → Web App
  *    - Execute as: Me
  *    - Who has access: Anyone (or "Only myself" if you add auth later)
- * 4. Copy the deployment URL into vault-config.json
+ * 5. Copy the deployment URL into vault-config.json
  *
- * GOOGLE DRIVE STRUCTURE EXPECTED:
- *   Root/
- *   ├── People/
- *   │   ├── Dad/
- *   │   │   ├── Aadhaar.pdf
- *   │   │   ├── PAN.pdf
- *   │   │   ├── photo.jpg
- *   │   │   └── Insurance_due_2026-12-31.pdf
- *   │   └── Mom/
- *   ├── Vehicles/
- *   │   ├── Car-MH01AB1234/
- *   │   │   ├── RC.pdf
- *   │   │   ├── Insurance_due_2026-06-15.pdf
- *   │   │   └── PUC.pdf
- *   │   └── Bike-MH01XY5678/
- *   ├── Properties/
- *   │   └── Our-Home/
- *   │       ├── Sale_Deed.pdf
- *   │       └── Property_Tax.pdf
- *   └── Shared_Documents/
- *       └── Family_Health_Insurance.pdf
+ * 🗂️ FOLDER ISOLATION:
+ *   By default, everything goes inside a "ParivarVault" folder created 
+ *   in your Drive root. Nothing is ever created directly in root.
+ *   To use your own existing folder, set VAULT_ROOT_FOLDER_ID below.
+ *
+ *   Default structure (auto-created):
+ *   My Drive/
+ *   └── ParivarVault/
+ *       ├── People/
+ *       │   ├── Dad/
+ *       │   └── Mom/
+ *       ├── Vehicles/
+ *       │   └── Car-MH01AB1234/
+ *       ├── Properties/
+ *       │   └── Our-Home/
+ *       └── Shared_Documents/
  */
 
 // ═══════════════════════════════════════════════
-// CONFIGURATION — Adjust these to match your folders
+// CONFIGURATION — Adjust these to match your needs
 // ═══════════════════════════════════════════════
 const CONFIG = {
+  // ── Folder Names ──────────────────────────
   PEOPLE_FOLDER_NAME: "People",
   VEHICLES_FOLDER_NAME: "Vehicles",
   PROPERTIES_FOLDER_NAME: "Properties",
   SHARED_FOLDER_NAME: "Shared_Documents",
+  
+  // ── Vault Root Folder (FOLDER ISOLATION) ──
+  // DEFAULT BEHAVIOR: If left empty (""), a "ParivarVault" folder is 
+  //   auto-created in your Drive root. ALL app data goes inside it.
+  //   Your Drive root stays clean — nothing is created outside this folder.
+  //
+  // CUSTOM FOLDER: Set this to the ID of ANY existing folder in your Drive
+  //   to use it as the vault root. Find a folder's ID by opening it in 
+  //   Drive and copying the string after "/folders/" in the URL.
+  //   Example: "1aBc2DeF3gHiJkLmNoPqRsTuVwXyZ"
+  VAULT_ROOT_FOLDER_ID: "",
 };
+
+// ═══════════════════════════════════════════════
+// HELPER: Get the vault root folder
+// Uses configured ID if set, otherwise auto-creates
+// a "ParivarVault" container. NEVER uses Drive root directly.
+// ═══════════════════════════════════════════════
+function getVaultRoot() {
+  // If user configured a specific folder ID, use it
+  if (CONFIG.VAULT_ROOT_FOLDER_ID) {
+    try {
+      return DriveApp.getFolderById(CONFIG.VAULT_ROOT_FOLDER_ID);
+    } catch (e) {
+      throw new Error(
+        "Configured VAULT_ROOT_FOLDER_ID not found. " +
+        "Either the ID is wrong or the folder was deleted. " +
+        "Check your Code.gs CONFIG. Folder ID tried: " + 
+        CONFIG.VAULT_ROOT_FOLDER_ID
+      );
+    }
+  }
+  
+  // Default: find or create "ParivarVault" in Drive root
+  const driveRoot = DriveApp.getRootFolder();
+  const existing = findFolder(driveRoot, "ParivarVault");
+  if (existing) return existing;
+  
+  // Auto-create the container folder
+  return driveRoot.createFolder("ParivarVault");
+}
 
 // ═══════════════════════════════════════════════
 // MAIN ENTRY POINT — called by GET requests
@@ -67,7 +105,7 @@ function doGet(e) {
 // BUILD THE FULL VAULT DATA STRUCTURE
 // ═══════════════════════════════════════════════
 function buildVaultData() {
-  const rootFolder = DriveApp.getRootFolder();
+  const rootFolder = getVaultRoot();
   
   // Find category folders
   const peopleFolder = findFolder(rootFolder, CONFIG.PEOPLE_FOLDER_NAME);
@@ -230,6 +268,10 @@ function doPost(e) {
         return jsonResponse(handleDeleteFile(e.parameter));
       case "renameItem":
         return jsonResponse(handleRenameItem(e.parameter));
+      case "updateDueDate":
+        return jsonResponse(handleUpdateDueDate(e.parameter));
+      case "renameFolderByName":
+        return jsonResponse(handleRenameFolderByName(e.parameter));
       default:
         return jsonResponse({ success: false, error: "Unknown action: " + action });
     }
@@ -260,7 +302,7 @@ function handleCreateFolder(params) {
     return { success: false, error: "Invalid parentType: " + parentType };
   }
 
-  const root = DriveApp.getRootFolder();
+  const root = getVaultRoot();
   const parentFolder = findOrCreateFolder(root, parentFolderName);
   
   // Check for duplicate
@@ -288,7 +330,7 @@ function handleDeleteFolder(params) {
     return { success: false, error: "Missing parentType or folderName" };
   }
 
-  const root = DriveApp.getRootFolder();
+  const root = getVaultRoot();
   let targetFolder;
 
   if (parentType === "SHARED") {
@@ -350,7 +392,7 @@ function handleUploadFile(e) {
     return { success: false, error: "File too large. Maximum ~6 MB per upload." };
   }
 
-  const root = DriveApp.getRootFolder();
+  const root = getVaultRoot();
   let targetFolder;
 
   if (parentType === "SHARED") {
@@ -446,6 +488,91 @@ function findOrCreateFolder(parentFolder, folderName) {
   const existing = findFolder(parentFolder, folderName);
   if (existing) return existing;
   return parentFolder.createFolder(folderName);
+}
+
+/**
+ * Update the due date on a file by renaming it.
+ * @param {Object} params - { fileId: string, newDueDate: string (YYYY-MM-DD) }
+ * If the file already has a _due_YYYY-MM-DD pattern, it replaces it.
+ * Otherwise, it appends _due_YYYY-MM-DD before the extension.
+ */
+function handleUpdateDueDate(params) {
+  const fileId = (params.fileId || "").trim();
+  const newDueDate = (params.newDueDate || "").trim();
+
+  if (!fileId || !newDueDate) {
+    return { success: false, error: "Missing fileId or newDueDate" };
+  }
+
+  // Validate date format
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDueDate)) {
+    return { success: false, error: "Invalid date format. Use YYYY-MM-DD" };
+  }
+
+  try {
+    const file = DriveApp.getFileById(fileId);
+    const oldName = file.getName();
+    const DUE_DATE_REGEX = /_due_\d{4}-\d{2}-\d{2}/i;
+    
+    let newName;
+    if (DUE_DATE_REGEX.test(oldName)) {
+      // Replace existing due date
+      newName = oldName.replace(DUE_DATE_REGEX, "_due_" + newDueDate);
+    } else {
+      // Append new due date before extension
+      const lastDot = oldName.lastIndexOf(".");
+      if (lastDot > 0) {
+        newName = oldName.substring(0, lastDot) + "_due_" + newDueDate + oldName.substring(lastDot);
+      } else {
+        newName = oldName + "_due_" + newDueDate;
+      }
+    }
+    
+    file.setName(newName);
+    return { success: true, oldName: oldName, newName: newName };
+  } catch (err) {
+    return { success: false, error: "File not found or access denied: " + err.toString() };
+  }
+}
+
+/**
+ * Rename a folder by its current name (useful when we know parentType + oldName but not folderId).
+ * @param {Object} params - { parentType: "PEOPLE"|"VEHICLES"|"PROPERTIES", oldName: string, newName: string }
+ */
+function handleRenameFolderByName(params) {
+  const parentType = params.parentType;
+  const oldName = (params.oldName || "").trim();
+  const newName = (params.newName || "").trim();
+
+  if (!parentType || !oldName || !newName) {
+    return { success: false, error: "Missing parentType, oldName, or newName" };
+  }
+
+  const configKey = parentType + "_FOLDER_NAME";
+  const parentFolderName = CONFIG[configKey];
+  if (!parentFolderName) {
+    return { success: false, error: "Invalid parentType: " + parentType };
+  }
+
+  const root = getVaultRoot();
+  const parentFolder = findFolder(root, parentFolderName);
+  if (!parentFolder) {
+    return { success: false, error: "Parent folder '" + parentFolderName + "' not found" };
+  }
+
+  const targetFolder = findFolder(parentFolder, oldName);
+  if (!targetFolder) {
+    return { success: false, error: "Folder '" + oldName + "' not found" };
+  }
+
+  // Check for duplicate
+  const existingNew = findFolder(parentFolder, newName);
+  if (existingNew) {
+    return { success: false, error: "A folder named '" + newName + "' already exists" };
+  }
+
+  targetFolder.setName(newName);
+  return { success: true, oldName: oldName, newName: newName, folderId: targetFolder.getId() };
 }
 
 /**

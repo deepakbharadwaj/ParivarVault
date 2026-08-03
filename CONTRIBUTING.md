@@ -58,14 +58,16 @@ cd ParivarVault
 
 # Copy config template
 cp vault-config.example.json vault-config.json
+# Edit vault-config.json with your Apps Script URL (see README.md Step 2)
 
 # Serve locally
 python3 -m http.server 8080
-# or
-npx serve .
-
 # Open http://localhost:8080
+```
 
+> 💡 **No Google Drive folder setup needed** — the app auto-creates folders when you use the Add Member/Vehicle/Property buttons in the UI.
+
+```bash
 # Run tests (before any PR!)
 open tests/test-runner.html
 ```

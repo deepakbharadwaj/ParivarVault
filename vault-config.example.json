@@ -1,10 +1,12 @@
 {
   "_comment": "═══════════════════════════════════════════════════",
-  "_instructions": "Copy this file to vault-config.json and fill in YOUR values. NEVER commit vault-config.json to git!",
-  "_appsScriptGuide": "1. Go to https://script.google.com 2. Create a new project 3. Paste the code from apps-script/Code.gs 4. Deploy as Web App (Execute as: Me, Access: Anyone) 5. Copy the deployment URL below",
+  "_instructions": "1. Copy this file to vault-config.json:  cp vault-config.example.json vault-config.json",
+  "_security": "vault-config.json is in .gitignore — it will NEVER be committed to git. Keep it safe!",
+  "_appsScriptSetup": "See README.md for step-by-step setup. Takes 2 minutes. NO API console needed.",
+  "_cloudflareDeploy": "To deploy on Cloudflare Pages with Zero Trust auth, see the README.md section 'Deploy to Cloudflare Pages + Zero Trust'.",
   "appsScriptUrl": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
 
-  "_bankAccountsGuide": "Add bank account details for each family member. This data NEVER leaves your browser — it's stored only in your local vault-config.json and your browser's localStorage.",
+  "_bankAccountsGuide": "Bank details are read LOCALLY from this file. They are NEVER sent to any server, not even Google. The app reads them directly in your browser.",
   "bankAccounts": [
     {
       "person": "Dad",
