@@ -1,38 +1,4 @@
 {
-  "_comment": "═══════════════════════════════════════════════════",
-  "_instructions": "1. Copy this file to vault-config.json:  cp vault-config.example.json vault-config.json",
-  "_security": "vault-config.json is in .gitignore — it will NEVER be committed to git. Keep it safe!",
-  "_appsScriptSetup": "See README.md for step-by-step setup. Takes 2 minutes. NO API console needed.",
-  "_cloudflareDeploy": "To deploy on Cloudflare Pages with Zero Trust auth, see the README.md section 'Deploy to Cloudflare Pages + Zero Trust'.",
-  "appsScriptUrl": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
-
-  "_bankAccountsGuide": "Bank details are read LOCALLY from this file. They are NEVER sent to any server, not even Google. The app reads them directly in your browser.",
-  "bankAccounts": [
-    {
-      "person": "Dad",
-      "banks": [
-        {
-          "bankName": "State Bank of India",
-          "accNumber": "XXXXXXXXXXXX",
-          "ifsc": "SBIN0000000",
-          "branch": "Your Branch Name",
-          "Primary Account Holder": "Dad's Full Name"
-        }
-      ]
-    },
-    {
-      "person": "Mom",
-      "banks": [
-        {
-          "bankName": "HDFC Bank",
-          "accNumber": "XXXXXXXXXXXX",
-          "ifsc": "HDFC0000000",
-          "branch": "Your Branch Name",
-          "Primary Account Holder": "Mom's Full Name"
-        }
-      ]
-    }
-  ],
-
-  "_googleDriveStructure": "Create these folders in your Google Drive root: People/[Name]/ (with subfolders for Aadhaar, PAN, etc.), Vehicles/[VehicleName]/, Properties/[PropertyName]/, Shared_Documents/"
+  "_copy_me": "cp vault-config.example.json vault-config.json",
+  "appsScriptUrl": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
 }

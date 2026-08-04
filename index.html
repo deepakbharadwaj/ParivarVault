@@ -16,6 +16,8 @@
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for health trends -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
       tailwind.config = {
         darkMode: "class",
@@ -149,6 +151,30 @@
       
       .bank-card {
           background: linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+      }
+
+      /* ── Custom Tooltip ── */
+      .vault-tooltip {
+        position: fixed;
+        z-index: 99999;
+        background: rgba(15, 23, 42, 0.95);
+        color: #f1f5f9;
+        font-size: 0.7rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 0.4rem;
+        border: 1px solid rgba(255,255,255,0.15);
+        pointer-events: none;
+        white-space: nowrap;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        font-family: 'Inter', sans-serif;
+        letter-spacing: 0.01em;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      }
+      .vault-tooltip.show {
+        opacity: 1;
+        transform: translateY(0);
       }
 
       /* Toast Notifications */
@@ -300,6 +326,10 @@
             <i class="fa-solid fa-heart-pulse text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
             <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.medical">Medical</span>
           </button>
+          <button onclick="navigate('utilities')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="utilities">
+            <i class="fa-solid fa-bolt text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
+            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.utilities">Utilities</span>
+          </button>
         </nav>
       </div>
       <div class="hidden lg:block p-4 border-t border-white/10 text-center lg:text-left text-xs text-gray-500">
@@ -309,7 +339,13 @@
 
     <main class="flex-1 flex flex-col h-full relative z-10 order-1 lg:order-2 overflow-hidden">
       <header class="glass-panel h-16 lg:h-20 px-4 lg:px-6 flex items-center justify-between border-b border-white/10 shrink-0 z-30">
-        <h1 id="page-title" class="text-lg lg:text-xl font-medium text-white/90 truncate mr-4" data-i18n="page.dashboard">Dashboard</h1>
+        <div class="flex items-center space-x-2 lg:space-x-4 min-w-0">
+          <h1 id="page-title" class="text-lg lg:text-xl font-medium text-white/90 truncate" data-i18n="page.dashboard">Dashboard</h1>
+          <!-- Contextual Add Button (shown on members/vehicles/properties pages) -->
+          <button id="header-add-btn" onclick="triggerHeaderAdd()" class="hidden glass-button rounded-full w-8 h-8 lg:w-auto lg:h-auto lg:rounded-lg lg:px-3 lg:py-1.5 flex items-center justify-center text-xs lg:text-sm text-blue-400 hover:text-blue-300 shrink-0" title="Add">
+            <i class="fa-solid fa-plus lg:mr-1.5"></i><span class="hidden lg:inline" id="header-add-label">Add</span>
+          </button>
+        </div>
 
         <div class="flex items-center relative">
             <!-- Search Bar -->
@@ -421,6 +457,21 @@
                   </button>
                 </div>
                 <p class="text-xs lg:text-sm text-gray-400 mt-1" data-i18n="detail.personalProfile">Personal Profile</p>
+                <!-- Email & Phone (inline editable) -->
+                <div class="mt-3 space-y-1.5" id="member-contact-info">
+                  <div class="flex items-center text-xs text-gray-400 group/ci cursor-pointer" onclick="editMemberField('email')">
+                    <i class="fa-solid fa-envelope w-4 text-center mr-1.5 opacity-60"></i>
+                    <span id="display-email" class="hover:text-white transition-colors">—</span>
+                    <input id="edit-email" type="email" class="hidden bg-white/5 border border-white/10 rounded px-2 py-0.5 text-white text-xs w-48 focus:outline-none focus:border-blue-400/50" placeholder="email@example.com" />
+                    <i class="fa-solid fa-pen-to-square text-[9px] ml-1.5 opacity-0 group-hover/ci:opacity-60 transition-opacity shrink-0"></i>
+                  </div>
+                  <div class="flex items-center text-xs text-gray-400 group/ci cursor-pointer" onclick="editMemberField('phone')">
+                    <i class="fa-solid fa-phone w-4 text-center mr-1.5 opacity-60"></i>
+                    <span id="display-phone" class="hover:text-white transition-colors">—</span>
+                    <input id="edit-phone" type="tel" class="hidden bg-white/5 border border-white/10 rounded px-2 py-0.5 text-white text-xs w-48 focus:outline-none focus:border-blue-400/50" placeholder="+91 9876543210" />
+                    <i class="fa-solid fa-pen-to-square text-[9px] ml-1.5 opacity-0 group-hover/ci:opacity-60 transition-opacity shrink-0"></i>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="flex space-x-2">
@@ -433,28 +484,23 @@
             </div>
           </div>
           
-          <!-- Document naming help -->
-          <div id="detail-docs-help" class="mb-4 p-3 bg-blue-500/5 border border-blue-500/15 rounded-xl text-xs text-gray-400 flex items-start cursor-pointer hover:bg-blue-500/10 transition-colors hidden" onclick="this.classList.toggle('expanded')">
-            <i class="fa-solid fa-circle-info text-blue-400 mr-2 mt-0.5 shrink-0"></i>
-            <div>
-              <span class="text-blue-300 font-medium">How documents are sorted:</span>
-              <span class="detail-help-short"> Include keywords like <code class="text-blue-300 bg-blue-500/10 px-1 rounded">Aadhaar</code>, <code class="text-blue-300 bg-blue-500/10 px-1 rounded">PAN</code>, <code class="text-blue-300 bg-blue-500/10 px-1 rounded">Passport</code>, <code class="text-blue-300 bg-blue-500/10 px-1 rounded">Voter</code>, <code class="text-blue-300 bg-blue-500/10 px-1 rounded">DL</code> in the filename. Tap for details.</span>
-              <span class="detail-help-full hidden">Documents are automatically sorted into categories based on keywords in the filename (case-insensitive). Short keywords like <strong>PAN, RC, DL, PUC, TAX</strong> must appear as separate words (e.g., <code>PAN_Card.pdf</code> not <code>Japan_Visa.pdf</code>). Files without matching keywords go to <strong>Other Documents</strong> below. <a href="README.md" target="_blank" class="text-blue-400 underline">Learn more →</a></span>
-            </div>
-          </div>
-
           <div id="detail-docs-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6"></div>
           
           <!-- Bank Accounts Container -->
           <div id="detail-banks-container" class="mt-8 border-t border-white/10 pt-8 hidden">
-              <div class="flex items-center mb-6">
-                  <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 mr-3">
-                      <i class="fa-solid fa-building-columns"></i>
+              <div class="flex items-center justify-between mb-6">
+                  <div class="flex items-center">
+                      <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 mr-3">
+                          <i class="fa-solid fa-building-columns"></i>
+                      </div>
+                      <div>
+                          <h3 class="text-lg lg:text-xl font-medium" data-i18n="banks.title">Bank Accounts</h3>
+                          <p class="text-xs text-gray-400" data-i18n="banks.subtitle">Manage financial records safely</p>
+                      </div>
                   </div>
-                  <div>
-                      <h3 class="text-lg lg:text-xl font-medium" data-i18n="banks.title">Bank Accounts</h3>
-                      <p class="text-xs text-gray-400" data-i18n="banks.subtitle">Manage financial records safely</p>
-                  </div>
+                  <button onclick="openBankModal()" class="glass-button px-4 py-2 rounded-lg text-sm flex items-center text-blue-400 hover:text-blue-300">
+                      <i class="fa-solid fa-plus mr-2"></i> <span data-i18n="banks.add">Add Account</span>
+                  </button>
               </div>
               <div id="detail-banks-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6"></div>
           </div>
@@ -523,6 +569,31 @@
               <div id="medical-vitals-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4"></div>
             </div>
 
+            <!-- Trends Chart Section -->
+            <div id="vitals-trends-section" class="glass-panel p-4 lg:p-6 rounded-2xl mb-6 lg:mb-8 hidden">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base lg:text-lg font-medium" data-i18n="medical.trends">Health Trends</h3>
+                <select id="vitals-chart-metric" onchange="renderVitalsChart(medicalSelectedPerson)" class="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none">
+                  <option value="bp">Blood Pressure</option>
+                  <option value="sugar">Blood Sugar (Fasting)</option>
+                  <option value="weight">Weight (kg)</option>
+                  <option value="hr">Heart Rate</option>
+                  <option value="hba1c">HbA1c (%)</option>
+                  <option value="cholesterol">Cholesterol</option>
+                  <option value="hemoglobin">Hemoglobin</option>
+                  <option value="vitaminD">Vitamin D</option>
+                  <option value="vitaminB12">Vitamin B12</option>
+                </select>
+              </div>
+              <div class="relative w-full" style="max-height: 300px;">
+                <canvas id="vitals-trend-canvas"></canvas>
+              </div>
+              <div id="vitals-trend-empty" class="text-center py-8 text-gray-500 text-sm hidden">
+                <i class="fa-solid fa-chart-line text-3xl mb-2 block opacity-50"></i>
+                <span>Add at least 2 readings to see trends.</span>
+              </div>
+            </div>
+
             <!-- Add Vitals Form (hidden by default) -->
             <div id="add-vitals-form" class="glass-panel p-4 lg:p-6 rounded-2xl mb-6 lg:mb-8 hidden">
               <h3 class="text-base lg:text-lg font-medium mb-4" data-i18n="medical.newReading">New Health Reading</h3>
@@ -540,6 +611,10 @@
                   <input id="vital-sugar" type="number" placeholder="95" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
                 </div>
                 <div>
+                  <label class="text-xs text-gray-400 block mb-1">HbA1c (%)</label>
+                  <input id="vital-hba1c" type="number" step="0.1" placeholder="5.6" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
                   <label class="text-xs text-gray-400 block mb-1" data-i18n="medical.weight">Weight (kg)</label>
                   <input id="vital-weight" type="number" step="0.1" placeholder="70" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
                 </div>
@@ -550,6 +625,38 @@
                 <div>
                   <label class="text-xs text-gray-400 block mb-1" data-i18n="medical.heartRate">Heart Rate</label>
                   <input id="vital-hr" type="number" placeholder="72" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Hemoglobin (g/dL)</label>
+                  <input id="vital-hb" type="number" step="0.1" placeholder="14.5" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Total Chol. (mg/dL)</label>
+                  <input id="vital-chol" type="number" placeholder="180" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">HDL (mg/dL)</label>
+                  <input id="vital-hdl" type="number" placeholder="45" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">LDL (mg/dL)</label>
+                  <input id="vital-ldl" type="number" placeholder="110" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Triglycerides</label>
+                  <input id="vital-trig" type="number" placeholder="150" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Vitamin D (ng/mL)</label>
+                  <input id="vital-vitd" type="number" step="0.1" placeholder="30" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Vitamin B12 (pg/mL)</label>
+                  <input id="vital-b12" type="number" placeholder="400" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Creatinine (mg/dL)</label>
+                  <input id="vital-creat" type="number" step="0.1" placeholder="0.9" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-400/50" />
                 </div>
                 <div>
                   <label class="text-xs text-gray-400 block mb-1" data-i18n="medical.date">Date</label>
@@ -576,6 +683,7 @@
                       <th class="p-2 text-left" data-i18n="medical.date">Date</th>
                       <th class="p-2 text-center">BP</th>
                       <th class="p-2 text-center" data-i18n="medical.sugar">Sugar</th>
+                      <th class="p-2 text-center">HbA1c</th>
                       <th class="p-2 text-center" data-i18n="medical.weight">Wt (kg)</th>
                       <th class="p-2 text-center">BMI</th>
                       <th class="p-2 text-center" data-i18n="medical.hr">HR</th>
@@ -601,6 +709,51 @@
                 <span data-i18n="medical.noDocs">No medical documents found. Upload lab reports, prescriptions, or vaccination records with medical keywords in filenames.</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Utilities View -->
+        <div id="view-utilities" class="view-section hidden">
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
+            <div class="glass-panel p-4 rounded-xl text-center">
+              <i class="fa-solid fa-indian-rupee-sign text-amber-400 text-xl mb-2 block"></i>
+              <p class="text-xs text-gray-400" data-i18n="utils.thisMonth">This Month</p>
+              <p id="util-total-month" class="text-xl lg:text-2xl font-bold text-white mt-1">₹0</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl text-center">
+              <i class="fa-solid fa-clock text-blue-400 text-xl mb-2 block"></i>
+              <p class="text-xs text-gray-400" data-i18n="utils.pending">Pending</p>
+              <p id="util-count-pending" class="text-xl lg:text-2xl font-bold text-white mt-1">0</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl text-center">
+              <i class="fa-solid fa-circle-exclamation text-red-400 text-xl mb-2 block"></i>
+              <p class="text-xs text-gray-400" data-i18n="utils.overdue">Overdue</p>
+              <p id="util-count-overdue" class="text-xl lg:text-2xl font-bold text-red-400 mt-1">0</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl text-center">
+              <i class="fa-solid fa-check-circle text-green-400 text-xl mb-2 block"></i>
+              <p class="text-xs text-gray-400" data-i18n="utils.paidMonth">Paid This Month</p>
+              <p id="util-count-paid" class="text-xl lg:text-2xl font-bold text-green-400 mt-1">0</p>
+            </div>
+          </div>
+
+          <!-- Filter Tabs -->
+          <div class="flex flex-wrap gap-2 mb-4 lg:mb-6" id="util-filters">
+            <button onclick="filterUtilities('all')" class="util-filter-btn px-3 py-1.5 rounded-full text-xs bg-white/10 text-white" data-filter="all">All</button>
+            <button onclick="filterUtilities('electricity')" class="util-filter-btn px-3 py-1.5 rounded-full text-xs bg-white/5 text-gray-400 hover:text-white" data-filter="electricity"><i class="fa-solid fa-bolt mr-1 text-yellow-400"></i> Electricity</button>
+            <button onclick="filterUtilities('gas')" class="util-filter-btn px-3 py-1.5 rounded-full text-xs bg-white/5 text-gray-400 hover:text-white" data-filter="gas"><i class="fa-solid fa-fire mr-1 text-orange-400"></i> Gas</button>
+            <button onclick="filterUtilities('water')" class="util-filter-btn px-3 py-1.5 rounded-full text-xs bg-white/5 text-gray-400 hover:text-white" data-filter="water"><i class="fa-solid fa-droplet mr-1 text-blue-400"></i> Water</button>
+            <button onclick="filterUtilities('phone')" class="util-filter-btn px-3 py-1.5 rounded-full text-xs bg-white/5 text-gray-400 hover:text-white" data-filter="phone"><i class="fa-solid fa-mobile-screen mr-1 text-purple-400"></i> Phone</button>
+            <button onclick="filterUtilities('rent')" class="util-filter-btn px-3 py-1.5 rounded-full text-xs bg-white/5 text-gray-400 hover:text-white" data-filter="rent"><i class="fa-solid fa-house mr-1 text-emerald-400"></i> Rent</button>
+            <button onclick="filterUtilities('subscription')" class="util-filter-btn px-3 py-1.5 rounded-full text-xs bg-white/5 text-gray-400 hover:text-white" data-filter="subscription"><i class="fa-solid fa-rotate mr-1 text-cyan-400"></i> Subscriptions</button>
+          </div>
+
+          <!-- Utilities List -->
+          <div id="utilities-list" class="space-y-3"></div>
+          <div id="utilities-empty" class="text-center py-12 text-gray-500 text-sm hidden">
+            <i class="fa-solid fa-bolt text-4xl mb-3 block opacity-50"></i>
+            <span data-i18n="utils.noBills">No bills added yet. Click the + button above to add your first bill.</span>
           </div>
         </div>
 
@@ -800,6 +953,95 @@
       </div>
     </div>
 
+    <!-- Bank Account Add/Edit Modal -->
+    <div id="modal-bank-account" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeBankModal()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-building-columns text-blue-400 mr-2"></i><span id="bank-modal-title" data-i18n="banks.addTitle">Add Bank Account</span></h3>
+          <button onclick="closeBankModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="banks.bankName">Bank Name</label>
+            <input id="bank-input-name" type="text" class="modal-input" placeholder="e.g. State Bank of India" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="banks.holder">Account Holder</label>
+            <input id="bank-input-holder" type="text" class="modal-input" placeholder="e.g. Rajesh Kumar" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="banks.accNo">Account Number</label>
+            <input id="bank-input-accno" type="text" class="modal-input" placeholder="e.g. 12345678901" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="banks.ifsc">IFSC Code</label>
+            <input id="bank-input-ifsc" type="text" class="modal-input" placeholder="e.g. SBIN0001234" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="banks.branch">Branch</label>
+            <input id="bank-input-branch" type="text" class="modal-input" placeholder="e.g. MG Road, Bengaluru" />
+          </div>
+          <button onclick="saveBankAccount()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors flex items-center justify-center">
+            <i class="fa-solid fa-floppy-disk mr-2"></i> <span data-i18n="banks.save">Save Account</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Add/Edit Utility Bill Modal ─── -->
+    <div id="modal-utility-bill" class="modal-overlay hidden-modal" onclick="if(event.target===this)closeUtilityModal()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-white"><i class="fa-solid fa-bolt text-amber-400 mr-2"></i><span id="utility-modal-title" data-i18n="utils.addBill">Add Bill</span></h3>
+          <button onclick="closeUtilityModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+        <div class="space-y-3.5">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="utils.type">Type</label>
+            <select id="util-input-type" class="modal-input">
+              <option value="electricity">⚡ Electricity</option>
+              <option value="gas">🔥 Gas</option>
+              <option value="water">💧 Water</option>
+              <option value="phone">📱 Phone / Internet</option>
+              <option value="rent">🏠 Rent / Maintenance</option>
+              <option value="subscription">🔄 Subscription</option>
+              <option value="other">📋 Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="utils.name">Bill / Provider Name</label>
+            <input id="util-input-name" type="text" class="modal-input" placeholder="e.g. BESCOM Electricity" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="utils.amount">Amount (₹)</label>
+            <input id="util-input-amount" type="number" class="modal-input" placeholder="e.g. 2450" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-gray-400 block mb-1.5" data-i18n="medical.date">Due Date</label>
+              <input id="util-input-due" type="date" class="modal-input" />
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 block mb-1.5" data-i18n="utils.frequency">Frequency</label>
+              <select id="util-input-freq" class="modal-input">
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+                <option value="one-time">One-time</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1.5" data-i18n="medical.notes">Notes</label>
+            <input id="util-input-notes" type="text" class="modal-input" placeholder="Optional notes..." />
+          </div>
+          <button onclick="saveUtilityBill()" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium transition-colors flex items-center justify-center">
+            <i class="fa-solid fa-floppy-disk mr-2"></i> <span data-i18n="banks.save">Save</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
       // ═══════════════════════════════════════════════════════
       // I18N — Multi-Language Translation System
@@ -816,17 +1058,13 @@
           stats: { people: "Total People", vehicles: "Vehicles", documents: "Documents", renewals: "Pending Renewals" },
           home: { members: "Family Members", garage: "Garage Overview", viewAll: "View All", noMembers: "No members found.", noVehicles: "No vehicles found." },
           detail: { back: "Back to Members", personalProfile: "Personal Profile", vault: "'s Vault", docsManaged: "Documents managed", noDocs: "No standard identity documents found.", otherDocs: "Other Documents" },
-          banks: { title: "Bank Accounts", subtitle: "Manage financial records safely", holder: "Holder", accNo: "Acc No", ifsc: "IFSC", copyAll: "Copy All", copied: "Copied!" },
+          banks: { title: "Bank Accounts", subtitle: "Manage financial records safely", holder: "Holder", accNo: "Acc No", ifsc: "IFSC", copyAll: "Copy All", copied: "Copied!", add: "Add Account", addTitle: "Add Bank Account", editTitle: "Edit Bank Account", save: "Save Account", noAccounts: "No bank accounts added yet. Click 'Add Account' to get started.", bankName: "Bank Name", branch: "Branch", confirmDelete: "Delete this bank account?", deleteSuccess: "Bank account deleted.", saveSuccess: "Bank account saved." },
           docCards: { pdfView: "PDF View", imgView: "Image View", preview: "Preview", download: "Download", viewDetails: "View details", noDocsFound: "No documents found.", noProperties: 'No properties found. Create a "Properties" folder in Google Drive.' },
           renewals: { title: "Upcoming Renewals", subtitle: 'Files tracked via "_due_YYYY-MM-DD" naming convention.', expired: "Expired", daysAgo: "days ago", dueIn: "Due in", days: "days", noRenewals: "No pending renewals found.", noRenewalsHint: 'Add "_due_YYYY-MM-DD" to filenames to track them here.', due: "Due:", unknownOwner: "Unknown Owner", shared: "Shared" },
           shared: { title: "Shared Documents", subtitle: 'Documents placed in the root "Shared_Documents" folder appear here.', noShared: "No shared documents found." },
           setup: { title: "Configuration Required", subtitle: "The application could not find vault-config.json in the root directory.", demo: "Launch Demo Mode" },
-          modal: { title: "Document Preview", download: "Download" },
-          demo: { preview: "Demo Mode: Preview requires real Google Drive integration.", download: "Demo Mode: Download requires real Google Drive integration." },
-          sync: { failed: "Failed to sync data. Ensure Apps Script is updated and deployed correctly." },
-          share: { title: "Share via WhatsApp", text: "Check out this document from our Family Vault:\n" },
-          docs: "Docs",
           modal: {
+            title: "Document Preview", download: "Download",
             addMember: "Add Family Member", memberName: "Full Name", createMember: "Create Member",
             addVehicle: "Add Vehicle", vehicleName: "Vehicle Name", createVehicle: "Add Vehicle",
             addProperty: "Add Property", propertyName: "Property Name", createProperty: "Add Property",
@@ -838,6 +1076,10 @@
             trashRecoverable: "Items go to Google Drive trash — recoverable within 30 days.",
             renameTitle: "Rename", newName: "New Name", saveChanges: "Save Changes"
           },
+          demo: { preview: "Demo Mode: Preview requires real Google Drive integration.", download: "Demo Mode: Download requires real Google Drive integration." },
+          sync: { failed: "Failed to sync data. Ensure Apps Script is updated and deployed correctly." },
+          share: { title: "Share via WhatsApp", text: "Check out this document from our Family Vault:\n" },
+          docs: "Docs",
           actions: {
             addMember: "Add Member", addVehicle: "Add Vehicle", addProperty: "Add Property",
             uploadDoc: "Upload Document", deleteMember: "Delete"
@@ -857,17 +1099,13 @@
           stats: { people: "कुल लोग", vehicles: "वाहन", documents: "दस्तावेज़", renewals: "लंबित नवीनीकरण" },
           home: { members: "परिवार के सदस्य", garage: "गैराज अवलोकन", viewAll: "सभी देखें", noMembers: "कोई सदस्य नहीं मिला।", noVehicles: "कोई वाहन नहीं मिला।" },
           detail: { back: "सदस्यों पर वापस जाएं", personalProfile: "व्यक्तिगत प्रोफ़ाइल", vault: " का वॉल्ट", docsManaged: "दस्तावेज़ प्रबंधित", noDocs: "कोई मानक पहचान दस्तावेज़ नहीं मिला।", otherDocs: "अन्य दस्तावेज़" },
-          banks: { title: "बैंक खाते", subtitle: "वित्तीय रिकॉर्ड सुरक्षित रूप से प्रबंधित करें", holder: "धारक", accNo: "खाता संख्या", ifsc: "IFSC", copyAll: "सभी कॉपी करें", copied: "कॉपी हो गया!" },
+          banks: { title: "बैंक खाते", subtitle: "वित्तीय रिकॉर्ड सुरक्षित रूप से प्रबंधित करें", holder: "धारक", accNo: "खाता संख्या", ifsc: "IFSC", copyAll: "सभी कॉपी करें", copied: "कॉपी हो गया!", add: "खाता जोड़ें", addTitle: "बैंक खाता जोड़ें", editTitle: "बैंक खाता संपादित करें", save: "खाता सहेजें", noAccounts: "अभी तक कोई बैंक खाता नहीं जोड़ा गया। 'खाता जोड़ें' पर क्लिक करें।", bankName: "बैंक का नाम", branch: "शाखा", confirmDelete: "यह बैंक खाता हटाएं?", deleteSuccess: "बैंक खाता हटा दिया गया।", saveSuccess: "बैंक खाता सहेजा गया।" },
           docCards: { pdfView: "PDF देखें", imgView: "इमेज देखें", preview: "प्रीव्यू", download: "डाउनलोड", viewDetails: "विवरण देखें", noDocsFound: "कोई दस्तावेज़ नहीं मिला।", noProperties: 'कोई संपत्ति नहीं मिली। Google Drive में "Properties" फ़ोल्डर बनाएं।' },
           renewals: { title: "आगामी नवीनीकरण", subtitle: '"_due_YYYY-MM-DD" नामकरण पद्धति से ट्रैक की गई फ़ाइलें।', expired: "समाप्त", daysAgo: "दिन पहले", dueIn: "दिन शेष", days: "दिन", noRenewals: "कोई लंबित नवीनीकरण नहीं मिला।", noRenewalsHint: 'यहां ट्रैक करने के लिए फ़ाइल नाम में "_due_YYYY-MM-DD" जोड़ें।', due: "देय:", unknownOwner: "अज्ञात स्वामी", shared: "साझा" },
           shared: { title: "साझा दस्तावेज़", subtitle: 'रूट "Shared_Documents" फ़ोल्डर में रखे गए दस्तावेज़ यहां दिखाई देते हैं।', noShared: "कोई साझा दस्तावेज़ नहीं मिला।" },
           setup: { title: "कॉन्फ़िगरेशन आवश्यक", subtitle: "एप्लिकेशन को रूट डायरेक्टरी में vault-config.json नहीं मिला।", demo: "डेमो मोड लॉन्च करें" },
-          modal: { title: "दस्तावेज़ प्रीव्यू", download: "डाउनलोड" },
-          demo: { preview: "डेमो मोड: प्रीव्यू के लिए वास्तविक Google Drive एकीकरण आवश्यक है।", download: "डेमो मोड: डाउनलोड के लिए वास्तविक Google Drive एकीकरण आवश्यक है।" },
-          sync: { failed: "डेटा सिंक करने में विफल। सुनिश्चित करें कि Apps Script अपडेट और सही ढंग से डिप्लॉय है।" },
-          share: { title: "WhatsApp पर शेयर करें", text: "हमारे फैमिली वॉल्ट से यह दस्तावेज़ देखें:\n" },
-          docs: "दस्तावेज़",
           modal: {
+            title: "दस्तावेज़ प्रीव्यू", download: "डाउनलोड",
             addMember: "परिवार सदस्य जोड़ें", memberName: "पूरा नाम", createMember: "सदस्य बनाएं",
             addVehicle: "वाहन जोड़ें", vehicleName: "वाहन का नाम", createVehicle: "वाहन जोड़ें",
             addProperty: "संपत्ति जोड़ें", propertyName: "संपत्ति का नाम", createProperty: "संपत्ति जोड़ें",
@@ -879,6 +1117,10 @@
             trashRecoverable: "आइटम Google Drive ट्रैश में जाते हैं — 30 दिनों के भीतर पुनर्प्राप्त करने योग्य।",
             renameTitle: "नाम बदलें", newName: "नया नाम", saveChanges: "परिवर्तन सहेजें"
           },
+          demo: { preview: "डेमो मोड: प्रीव्यू के लिए वास्तविक Google Drive एकीकरण आवश्यक है।", download: "डेमो मोड: डाउनलोड के लिए वास्तविक Google Drive एकीकरण आवश्यक है।" },
+          sync: { failed: "डेटा सिंक करने में विफल। सुनिश्चित करें कि Apps Script अपडेट और सही ढंग से डिप्लॉय है।" },
+          share: { title: "WhatsApp पर शेयर करें", text: "हमारे फैमिली वॉल्ट से यह दस्तावेज़ देखें:\n" },
+          docs: "दस्तावेज़",
           actions: {
             addMember: "सदस्य जोड़ें", addVehicle: "वाहन जोड़ें", addProperty: "संपत्ति जोड़ें",
             uploadDoc: "दस्तावेज़ अपलोड करें", deleteMember: "हटाएं"
@@ -905,8 +1147,8 @@
       // Medical i18n — merged at runtime to avoid editing the main I18N blocks
       const MEDICAL_TRANSLATIONS = {
         en: {
-          nav: { medical: "Medical" },
-          page: { medical: "Health Records" },
+          nav: { medical: "Medical", utilities: "Utilities" },
+          page: { medical: "Health Records", utilities: "Utility Bills" },
           medical: {
             back: "Back to Health Records", vitalsSubtitle: "Latest health vitals", addReading: "Add Reading",
             newReading: "New Health Reading", sugarFasting: "Sugar (Fasting)", weight: "Weight (kg)",
@@ -914,15 +1156,21 @@
             save: "Save Reading", cancel: "Cancel", history: "Vitals History",
             sugar: "Sugar", hr: "HR", noVitals: "No vitals recorded yet. Add your first reading!",
             documents: "Medical Documents", noDocs: "No medical documents found. Upload lab reports, prescriptions, or vaccination records.",
-            bp: "BP", bmi: "BMI", memberSummary: "Health Summary",
+            bp: "BP", bmi: "BMI", memberSummary: "Health Summary", trends: "Health Trends",
             labReports: "Lab Reports", prescriptions: "Prescriptions", vaccinations: "Vaccinations",
             otherMedical: "Other Medical", viewDetails: "View Health Records"
           },
-          docTypes: { medical_lab: "Lab Report", medical_prescription: "Prescription", medical_vaccine: "Vaccination Record", medical_other: "Medical Document" }
+          docTypes: { medical_lab: "Lab Report", medical_prescription: "Prescription", medical_vaccine: "Vaccination Record", medical_other: "Medical Document" },
+          utils: {
+            addBill: "Add Bill", editBill: "Edit Bill", type: "Type", name: "Bill / Provider Name",
+            amount: "Amount (₹)", frequency: "Frequency", thisMonth: "This Month", pending: "Pending",
+            overdue: "Overdue", paidMonth: "Paid This Month", noBills: "No bills added yet. Click the + button above to add your first bill.",
+            markPaid: "Mark Paid", delete: "Delete", paid: "Paid", unpaid: "Unpaid",
+          }
         },
         hi: {
-          nav: { medical: "चिकित्सा" },
-          page: { medical: "स्वास्थ्य रिकॉर्ड" },
+          nav: { medical: "चिकित्सा", utilities: "उपयोगिताएँ" },
+          page: { medical: "स्वास्थ्य रिकॉर्ड", utilities: "उपयोगिता बिल" },
           medical: {
             back: "स्वास्थ्य रिकॉर्ड पर वापस जाएं", vitalsSubtitle: "नवीनतम स्वास्थ्य माप", addReading: "रीडिंग जोड़ें",
             newReading: "नई स्वास्थ्य रीडिंग", sugarFasting: "शुगर (खाली पेट)", weight: "वज़न (किलो)",
@@ -930,11 +1178,17 @@
             save: "रीडिंग सेव करें", cancel: "रद्द करें", history: "स्वास्थ्य इतिहास",
             sugar: "शुगर", hr: "HR", noVitals: "अभी तक कोई रीडिंग नहीं। अपनी पहली रीडिंग जोड़ें!",
             documents: "चिकित्सा दस्तावेज़", noDocs: "कोई चिकित्सा दस्तावेज़ नहीं मिला। लैब रिपोर्ट, प्रिस्क्रिप्शन या टीकाकरण रिकॉर्ड अपलोड करें।",
-            bp: "बीपी", bmi: "BMI", memberSummary: "स्वास्थ्य सारांश",
+            bp: "बीपी", bmi: "BMI", memberSummary: "स्वास्थ्य सारांश", trends: "स्वास्थ्य रुझान",
             labReports: "लैब रिपोर्ट", prescriptions: "प्रिस्क्रिप्शन", vaccinations: "टीकाकरण",
             otherMedical: "अन्य चिकित्सा", viewDetails: "स्वास्थ्य रिकॉर्ड देखें"
           },
-          docTypes: { medical_lab: "लैब रिपोर्ट", medical_prescription: "प्रिस्क्रिप्शन", medical_vaccine: "टीकाकरण रिकॉर्ड", medical_other: "चिकित्सा दस्तावेज़" }
+          docTypes: { medical_lab: "लैब रिपोर्ट", medical_prescription: "प्रिस्क्रिप्शन", medical_vaccine: "टीकाकरण रिकॉर्ड", medical_other: "चिकित्सा दस्तावेज़" },
+          utils: {
+            addBill: "बिल जोड़ें", editBill: "बिल संपादित करें", type: "प्रकार", name: "बिल / प्रदाता",
+            amount: "राशि (₹)", frequency: "आवृत्ति", thisMonth: "इस महीने", pending: "लंबित",
+            overdue: "बकाया", paidMonth: "भुगतान", noBills: "अभी तक कोई बिल नहीं। + बटन पर क्लिक करें।",
+            markPaid: "भुगतान करें", delete: "हटाएं", paid: "भुगतान किया", unpaid: "बकाया",
+          }
         }
       };
 
@@ -1046,13 +1300,274 @@
       }
 
       // ═══════════════════════════════════════════════════════
-      // WHATSAPP SHARE
+      // WHATSAPP SHARE — improved with file sharing support
       // ═══════════════════════════════════════════════════════
-      function shareViaWhatsApp(fileName, fileId) {
+      async function shareViaWhatsApp(fileName, fileId) {
+        // Demo mode fallback
+        if (appState.isDemo || !appState.config || !appState.config.appsScriptUrl) {
+          const docUrl = `https://drive.google.com/file/d/${fileId}/view`;
+          const shareText = encodeURIComponent(t("share.text") + fileName + "\n" + docUrl);
+          window.open(`https://wa.me/?text=${shareText}`, "_blank");
+          return;
+        }
+        
+        // Try Web Share API first (supports file sharing on mobile)
+        if (navigator.share && navigator.canShare) {
+          try {
+            // Fetch the file through the Apps Script proxy (bypasses Drive permissions)
+            const formData = new URLSearchParams();
+            formData.append("action", "downloadFile");
+            formData.append("fileId", fileId);
+            
+            const res = await fetch(appState.config.appsScriptUrl, { method: "POST", body: formData });
+            const data = await res.json();
+            
+            if (data && !data.error && typeof data === "string") {
+              // Decode base64 and create a blob
+              const byteChars = atob(data);
+              const byteNums = new Array(byteChars.length);
+              for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+              const byteArr = new Uint8Array(byteNums);
+              
+              // Detect MIME type from extension
+              const ext = fileName.split('.').pop().toLowerCase();
+              const mimeMap = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };
+              const mimeType = mimeMap[ext] || "application/octet-stream";
+              
+              const file = new File([byteArr], fileName, { type: mimeType });
+              const shareData = { files: [file], title: fileName };
+              
+              if (navigator.canShare(shareData)) {
+                await navigator.share(shareData);
+                return;
+              }
+            }
+          } catch (e) {
+            // Web Share failed or user cancelled — fall through to link sharing
+            console.log("Web Share failed, falling back to link:", e.message);
+          }
+        }
+        
+        // Fallback: share as Google Drive link (anyone with the link can view)
         const docUrl = `https://drive.google.com/file/d/${fileId}/view`;
         const shareText = encodeURIComponent(t("share.text") + fileName + "\n" + docUrl);
         const waUrl = `https://wa.me/?text=${shareText}`;
         window.open(waUrl, "_blank");
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // BANK ACCOUNTS CRUD
+      // ═══════════════════════════════════════════════════════
+      let bankEditPerson = null;
+      let bankEditIndex = -1;
+
+      function openBankModal(personName = null, editIdx = -1) {
+        // If no person specified, use the currently viewed person
+        if (!personName && typeof currentDetailName !== 'undefined' && currentDetailName) {
+          personName = currentDetailName;
+        }
+        bankEditPerson = personName;
+        bankEditIndex = editIdx;
+        const isEdit = personName !== null && editIdx >= 0;
+        
+        document.getElementById("bank-modal-title").textContent = isEdit ? t("banks.editTitle") : t("banks.addTitle");
+        document.getElementById("bank-modal-title").setAttribute("data-i18n", isEdit ? "banks.editTitle" : "banks.addTitle");
+        
+        if (isEdit) {
+          const personData = appState.bankData.find(b => b.person.trim().toLowerCase() === personName.trim().toLowerCase());
+          if (personData && personData.banks[editIdx]) {
+            const bank = personData.banks[editIdx];
+            document.getElementById("bank-input-name").value = bank.bankName || "";
+            document.getElementById("bank-input-holder").value = bank["Primary Account Holder"] || bank.primaryAccountHolder || "";
+            document.getElementById("bank-input-accno").value = bank.accNumber || "";
+            document.getElementById("bank-input-ifsc").value = bank.ifsc || "";
+            document.getElementById("bank-input-branch").value = bank.branch || "";
+          }
+        } else {
+          document.getElementById("bank-input-name").value = "";
+          document.getElementById("bank-input-holder").value = personName || "";
+          document.getElementById("bank-input-accno").value = "";
+          document.getElementById("bank-input-ifsc").value = "";
+          document.getElementById("bank-input-branch").value = "";
+          if (!personName) bankEditPerson = null;
+        }
+        
+        document.getElementById("modal-bank-account").classList.remove("hidden-modal");
+      }
+
+      function closeBankModal() {
+        document.getElementById("modal-bank-account").classList.add("hidden-modal");
+        bankEditPerson = null;
+        bankEditIndex = -1;
+      }
+
+      async function saveBankAccount() {
+        const bankName = document.getElementById("bank-input-name").value.trim();
+        const holder = document.getElementById("bank-input-holder").value.trim();
+        const accNo = document.getElementById("bank-input-accno").value.trim();
+        const ifsc = document.getElementById("bank-input-ifsc").value.trim();
+        const branch = document.getElementById("bank-input-branch").value.trim();
+        const person = bankEditPerson || holder;
+        
+        if (!person || !bankName || !accNo) {
+          alert("Please fill in Person Name, Bank Name, and Account Number at minimum.");
+          return;
+        }
+        
+        const newBank = {
+          bankName: bankName,
+          accNumber: accNo,
+          ifsc: ifsc,
+          branch: branch,
+          "Primary Account Holder": holder
+        };
+        
+        // Find or create person entry
+        let personData = appState.bankData.find(b => b.person.trim().toLowerCase() === person.trim().toLowerCase());
+        if (!personData) {
+          personData = { person: person, banks: [] };
+          appState.bankData.push(personData);
+        }
+        
+        if (bankEditIndex >= 0) {
+          personData.banks[bankEditIndex] = newBank;
+        } else {
+          personData.banks.push(newBank);
+        }
+        
+        // Save to Google Drive via Apps Script
+        const saveBtn = document.querySelector("#modal-bank-account button[onclick*='saveBankAccount']");
+        setBtnLoading(saveBtn, true, "Saving...");
+        try {
+          const formData = new URLSearchParams();
+          formData.append("action", "saveBankAccounts");
+          formData.append("person", person);
+          formData.append("banks", JSON.stringify(personData.banks));
+          
+          const res = await fetch(appState.config.appsScriptUrl, { method: "POST", body: formData });
+          const result = await res.json();
+          if (!result.success) throw new Error(result.error || "Save failed");
+          
+          setBtnLoading(saveBtn, false);
+          showToast(t("banks.saveSuccess"), "success", 2500);
+          closeBankModal();
+          
+          // Refresh the current detail view
+          if (typeof currentDetailName !== 'undefined' && currentDetailName) {
+            openMemberDetail(currentDetailName);
+          }
+        } catch (e) {
+          setBtnLoading(saveBtn, false);
+          console.error("Failed to save bank account:", e);
+          alert("Failed to save: " + e.message + "\n\nTip: Make sure your Apps Script has been redeployed with the latest Code.gs.");
+        }
+      }
+
+      async function deleteBankAccount(personName, bankIdx) {
+        if (!confirm(t("banks.confirmDelete"))) return;
+        
+        const personData = appState.bankData.find(b => b.person.trim().toLowerCase() === personName.trim().toLowerCase());
+        if (!personData) return;
+        
+        const deletedBank = personData.banks.splice(bankIdx, 1)[0];
+        
+        try {
+          const formData = new URLSearchParams();
+          formData.append("action", "saveBankAccounts");
+          formData.append("person", personData.person);
+          formData.append("banks", JSON.stringify(personData.banks));
+          
+          const res = await fetch(appState.config.appsScriptUrl, { method: "POST", body: formData });
+          const result = await res.json();
+          if (!result.success) throw new Error(result.error || "Delete failed");
+          
+          // If no banks left, delete the file entirely
+          if (personData.banks.length === 0) {
+            const delForm = new URLSearchParams();
+            delForm.append("action", "deleteBankAccounts");
+            delForm.append("person", personData.person);
+            await fetch(appState.config.appsScriptUrl, { method: "POST", body: delForm });
+            appState.bankData = appState.bankData.filter(b => b.person.trim().toLowerCase() !== personName.trim().toLowerCase());
+          }
+          
+          showToast(t("banks.deleteSuccess"), "success", 2500);
+          
+          if (typeof currentDetailName !== 'undefined' && currentDetailName) {
+            openMemberDetail(currentDetailName);
+          }
+        } catch (e) {
+          console.error("Failed to delete bank account:", e);
+          alert("Failed to delete: " + e.message);
+          // Restore the bank data
+          personData.banks.splice(bankIdx, 0, deletedBank);
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // MEMBER CONTACT INFO — email & phone in bank data JSON
+      // ═══════════════════════════════════════════════════════
+      function getMemberInfo(personName) {
+        const data = appState.bankData.find(b => b.person.trim().toLowerCase() === personName.trim().toLowerCase());
+        return { email: data ? (data.email || "") : "", phone: data ? (data.phone || "") : "" };
+      }
+
+      function editMemberField(field) {
+        const display = document.getElementById("display-" + field);
+        const input = document.getElementById("edit-" + field);
+        if (!display || !input) return;
+
+        // Switch to edit mode
+        display.classList.add("hidden");
+        input.classList.remove("hidden");
+        input.focus();
+        input.select();
+
+        const save = async () => {
+          const value = input.value.trim();
+          input.classList.add("hidden");
+          display.classList.remove("hidden");
+          display.textContent = value || "—";
+          await saveMemberContact();
+        };
+
+        input.onblur = save;
+        input.onkeydown = (e) => {
+          if (e.key === "Enter") { input.blur(); }
+          if (e.key === "Escape") {
+            input.value = display.textContent === "—" ? "" : getMemberInfo(currentDetailName)[field];
+            input.blur();
+          }
+        };
+      }
+
+      async function saveMemberContact() {
+        if (!currentDetailName) return;
+        const email = document.getElementById("display-email").textContent;
+        const phone = document.getElementById("display-phone").textContent;
+
+        // Get or create person's bank data entry
+        let personData = appState.bankData.find(b => b.person.trim().toLowerCase() === currentDetailName.trim().toLowerCase());
+        if (!personData) {
+          personData = { person: currentDetailName, banks: [] };
+          appState.bankData.push(personData);
+        }
+        personData.email = email === "—" ? "" : email;
+        personData.phone = phone === "—" ? "" : phone;
+
+        try {
+          const formData = new URLSearchParams();
+          formData.append("action", "saveBankAccounts");
+          formData.append("person", currentDetailName);
+          formData.append("banks", JSON.stringify(personData.banks || []));
+          formData.append("email", personData.email || "");
+          formData.append("phone", personData.phone || "");
+
+          const res = await fetch(appState.config.appsScriptUrl, { method: "POST", body: formData });
+          const result = await res.json();
+          if (!result.success) throw new Error(result.error || "Save failed");
+        } catch (e) {
+          console.error("Failed to save contact info:", e);
+        }
       }
 
       // ═══════════════════════════════════════════════════════
@@ -1124,6 +1639,65 @@
       };
 
       // ═══════════════════════════════════════════════════════
+      // CUSTOM TOOLTIP SYSTEM — shows instantly on hover
+      // ═══════════════════════════════════════════════════════
+      (function initTooltips() {
+        const tip = document.createElement('div');
+        tip.className = 'vault-tooltip';
+        tip.id = 'vault-tooltip-el';
+        document.body.appendChild(tip);
+        let currentEl = null;
+
+        function show(el, e) {
+          const title = (el.getAttribute('title') || '').trim();
+          if (!title) return;
+          currentEl = el;
+          el.setAttribute('data-vt-title', title);
+          el.removeAttribute('title');
+          tip.textContent = title;
+          tip.classList.add('show');
+          position(e);
+        }
+        function position(e) {
+          const gap = 10;
+          let x = e.clientX + gap;
+          let y = e.clientY - 32;
+          const tw = tip.offsetWidth, th = tip.offsetHeight;
+          if (x + tw > window.innerWidth - 8) x = e.clientX - tw - gap;
+          if (y < 8) y = e.clientY + gap;
+          if (y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
+          tip.style.left = x + 'px';
+          tip.style.top = y + 'px';
+        }
+        function hide() {
+          tip.classList.remove('show');
+          if (currentEl) {
+            const stored = currentEl.getAttribute('data-vt-title');
+            if (stored) { currentEl.setAttribute('title', stored); currentEl.removeAttribute('data-vt-title'); }
+            currentEl = null;
+          }
+        }
+
+        document.addEventListener('mouseover', function(e) {
+          const el = e.target.closest('[title]');
+          if (!el) { hide(); return; }
+          if (el === currentEl) return;
+          hide();
+          show(el, e);
+        }, true);
+        document.addEventListener('mousemove', function(e) {
+          if (currentEl) position(e);
+        }, true);
+        document.addEventListener('mouseout', function(e) {
+          const el = e.target.closest('[title]');
+          if (!el || el === currentEl) hide();
+        }, true);
+        document.addEventListener('touchstart', function(e) {
+          hide();
+        }, true);
+      })();
+
+      // ═══════════════════════════════════════════════════════
       // Boot
       // ═══════════════════════════════════════════════════════
       window.addEventListener("DOMContentLoaded", initApp);
@@ -1156,6 +1730,21 @@
           document.getElementById("loading-state").classList.add("hidden");
           appState.bankData = DEFAULT_BANK_DATA;
           showView("setup");
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Utility: Button loading spinner
+      // ═══════════════════════════════════════════════════════
+      function setBtnLoading(btn, loading, text = '') {
+        if (!btn) return;
+        if (loading) {
+          btn._prevHtml = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> ${text}`;
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = btn._prevHtml || btn.innerHTML;
         }
       }
 
@@ -1212,6 +1801,7 @@
           appState.properties = data.properties ? data.properties.map(prop => ({ ...prop, files: cleanFiles(prop.files) })) : [];
           appState.shared = cleanFiles(data.shared);
           appState.driveData = cleanFiles(data.allFiles);
+          if (data.bankAccounts && data.bankAccounts.length > 0) appState.bankData = data.bankAccounts;
           updateLocalCache();
           processRenewals();
           renderAll();
@@ -1230,6 +1820,7 @@
               appState.properties = data2.properties ? data2.properties.map(prop => ({ ...prop, files: cf(prop.files) })) : [];
               appState.shared = cf(data2.shared);
               appState.driveData = cf(data2.allFiles);
+              if (data2.bankAccounts && data2.bankAccounts.length > 0) appState.bankData = data2.bankAccounts;
               updateLocalCache();
               processRenewals();
               renderAll();
@@ -1252,9 +1843,38 @@
         });
         const titles = {
           home: t("page.dashboard"), members: t("page.members"), vehicles: t("page.vehicles"),
-          properties: t("page.properties"), renewals: t("page.renewals"), shared: t("page.shared"), medical: t("page.medical")
+          properties: t("page.properties"), renewals: t("page.renewals"), shared: t("page.shared"), medical: t("page.medical"),
+          utilities: t("page.utilities")
         };
         if (titles[viewName]) document.getElementById("page-title").innerText = titles[viewName];
+
+        // Show contextual Add button in header for relevant pages
+        const addBtn = document.getElementById("header-add-btn");
+        const addLabel = document.getElementById("header-add-label");
+        const addPages = { members: "addMember", vehicles: "addVehicle", properties: "addProperty", utilities: "addUtility" };
+        if (addPages[viewName]) {
+          addBtn.classList.remove("hidden");
+          addBtn.dataset.addAction = addPages[viewName];
+          addLabel.textContent = viewName === "utilities" ? t("utils.addBill") : t("actions." + addPages[viewName]);
+          // Color match per type
+          addBtn.classList.remove("text-blue-400", "hover:text-blue-300", "text-purple-400", "hover:text-purple-300", "text-emerald-400", "hover:text-emerald-300", "text-amber-400", "hover:text-amber-300");
+          const colors = { members: ["text-blue-400", "hover:text-blue-300"], vehicles: ["text-purple-400", "hover:text-purple-300"], properties: ["text-emerald-400", "hover:text-emerald-300"], utilities: ["text-amber-400", "hover:text-amber-300"] };
+          if (colors[viewName]) { addBtn.classList.add(...colors[viewName]); }
+        } else {
+          addBtn.classList.add("hidden");
+        }
+
+        // Render utilities list when navigating to it
+        if (viewName === "utilities") renderUtilities();
+      }
+
+      function triggerHeaderAdd() {
+        const btn = document.getElementById("header-add-btn");
+        const action = btn.dataset.addAction;
+        if (action === "addMember") openAddMemberModal();
+        else if (action === "addVehicle") openAddVehicleModal();
+        else if (action === "addProperty") openAddPropertyModal();
+        else if (action === "addUtility") openUtilityModal();
       }
 
       function showView(viewId) {
@@ -1273,6 +1893,10 @@
               parseCachedData(MEM_CACHE.vault);
               document.getElementById("loading-state").classList.add("hidden");
               navigate("home");
+              // If bank data missing from cache, do background server sync
+              if (!appState.bankData || appState.bankData.length === 0) {
+                syncBankDataInBackground();
+              }
               return;
             }
             const cached = safeStorageGet("vault_cache_v3");
@@ -1282,6 +1906,10 @@
               parseCachedData(data);
               document.getElementById("loading-state").classList.add("hidden");
               navigate("home");
+              // If bank data missing from cache, do background server sync
+              if (!appState.bankData || appState.bankData.length === 0) {
+                syncBankDataInBackground();
+              }
               return;
             }
           }
@@ -1297,6 +1925,12 @@
           appState.properties = data.properties ? data.properties.map(prop => ({ ...prop, files: cleanFiles(prop.files) })) : [];
           appState.shared = cleanFiles(data.shared);
           appState.driveData = cleanFiles(data.allFiles);
+          // Load bank accounts from server if available, otherwise keep vault-config fallback
+          if (data.bankAccounts && data.bankAccounts.length > 0) {
+            appState.bankData = data.bankAccounts;
+          } else if (!appState.bankData || appState.bankData.length === 0) {
+            appState.bankData = appState.config.bankAccounts || DEFAULT_BANK_DATA;
+          }
 
           updateLocalCache();
           processRenewals();
@@ -1318,8 +1952,30 @@
         appState.properties = data.properties || [];
         appState.shared = data.shared || [];
         appState.driveData = data.allFiles || [];
+        if (data.bankData && data.bankData.length > 0) {
+          appState.bankData = data.bankData;
+        }
         processRenewals();
         renderAll();
+      }
+
+      // Background bank data sync — runs silently after cache load
+      async function syncBankDataInBackground() {
+        try {
+          if (appState.isDemo || !appState.config || !appState.config.appsScriptUrl) return;
+          const res = await fetch(appState.config.appsScriptUrl);
+          const data = await res.json();
+          if (data && data.bankAccounts && data.bankAccounts.length > 0) {
+            appState.bankData = data.bankAccounts;
+            updateLocalCache();
+            // Re-render current detail view if showing a member
+            if (typeof currentDetailName !== 'undefined' && currentDetailName) {
+              openMemberDetail(currentDetailName);
+            }
+          }
+        } catch (e) {
+          // Silent — don't bother user
+        }
       }
 
       // ═══════════════════════════════════════════════════════
@@ -1348,7 +2004,8 @@
         const cacheData = {
           people: appState.people, vehicles: appState.vehicles,
           properties: appState.properties, shared: appState.shared,
-          allFiles: appState.driveData
+          allFiles: appState.driveData,
+          bankData: appState.bankData
         };
         // Update in-memory mirror
         MEM_CACHE.vault = cacheData;
@@ -1455,6 +2112,7 @@
       function renderAll() {
         renderDashboard(); renderMembersList(); renderVehiclesList();
         renderPropertiesList(); renderRenewalsList(); renderSharedList(); renderMedicalList();
+        applyTranslations();
       }
 
       function renderDashboard() {
@@ -1524,15 +2182,6 @@
       function renderMembersList() {
         const grid = document.getElementById("members-grid");
         let html = "";
-        // Add Member button card
-        html += `<div class="glass-panel rounded-2xl overflow-hidden cursor-pointer group border-dashed border-2 border-white/10 hover:border-blue-400/50 transition-all min-h-[100px] flex items-center justify-center" onclick="openAddMemberModal()">
-          <div class="p-5 lg:p-6 text-center">
-            <div class="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-500/20 transition-all">
-              <i class="fa-solid fa-plus text-2xl text-blue-400"></i>
-            </div>
-            <p class="text-sm text-blue-400 group-hover:text-blue-300 font-medium" data-i18n="actions.addMember">Add Member</p>
-          </div>
-        </div>`;
         appState.people.forEach((person) => {
           const escapedName = person.name.replace(/'/g, "\\'");
           const photoFile = getDocumentFormat(person.files, PERSON_DOC_TYPES.find(t => t.isPhoto));
@@ -1575,6 +2224,13 @@
         document.getElementById("detail-upload-btn").onclick = () => openUploadModal("PEOPLE", person.name);
         document.getElementById("detail-delete-btn").onclick = () => confirmDeleteFolder("PEOPLE", person.name, person.name);
 
+        // Populate email & phone
+        const info = getMemberInfo(personName);
+        document.getElementById("display-email").textContent = info.email || "—";
+        document.getElementById("display-phone").textContent = info.phone || "—";
+        document.getElementById("edit-email").value = info.email || "";
+        document.getElementById("edit-phone").value = info.phone || "";
+
         const photoFile = getDocumentFormat(person.files, PERSON_DOC_TYPES.find(t => t.isPhoto));
         const photoContainer = document.getElementById("detail-photo-container");
         const photoInner = document.getElementById("detail-photo-inner");
@@ -1583,10 +2239,6 @@
 
         const matchedFileIds = new Set();
         if (photoFile.img) matchedFileIds.add(photoFile.img.id);
-
-        // Show document naming help
-        document.getElementById("detail-docs-help").classList.remove("hidden");
-        document.getElementById("detail-docs-help").classList.remove("expanded");
 
         const docsGrid = document.getElementById("detail-docs-grid");
         let docsHtml = "";
@@ -1606,13 +2258,13 @@
             <div class="flex flex-col space-y-2 mt-2">
               ${doc.pdfs.map(pdf => `<div class="flex space-x-2">
                 <button onclick="previewFile('${pdf.id}', '${person.name} - ${docTypeName(type)} (PDF)')" class="glass-button flex-1 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-regular fa-eye mr-1"></i> ${t("docCards.pdfView")}</button>
-                <button onclick="downloadFile('${pdf.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-solid fa-download"></i></button>
+                <button onclick="downloadFile('${pdf.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center" title="Download"><i class="fa-solid fa-download"></i></button>
                 <button onclick="shareViaWhatsApp('${docTypeName(type)}', '${pdf.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
                 <button onclick="event.stopPropagation(); confirmDeleteFile('${pdf.id}', '${(docTypeName(type)+' (PDF)').replace(/'/g, "\\'")}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete"><i class="fa-solid fa-trash"></i></button>
               </div>`).join('')}
               ${doc.imgs.map(img => `<div class="flex space-x-2">
                 <button onclick="previewFile('${img.id}', '${person.name} - ${docTypeName(type)} (Image)')" class="glass-button flex-1 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-regular fa-image mr-1"></i> ${t("docCards.imgView")}</button>
-                <button onclick="downloadFile('${img.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-solid fa-download"></i></button>
+                <button onclick="downloadFile('${img.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center" title="Download"><i class="fa-solid fa-download"></i></button>
                 <button onclick="shareViaWhatsApp('${docTypeName(type)}', '${img.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
                 <button onclick="event.stopPropagation(); confirmDeleteFile('${img.id}', '${(docTypeName(type)+' (Image)').replace(/'/g, "\\'")}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete"><i class="fa-solid fa-trash"></i></button>
               </div>`).join('')}
@@ -1629,21 +2281,27 @@
 
         if (personBankData && personBankData.banks.length > 0) {
           let bankHtml = "";
-          personBankData.banks.forEach(bank => {
+          personBankData.banks.forEach((bank, bankIdx) => {
             const primaryHolder = bank["Primary Account Holder"] || bank.primaryAccountHolder || personName;
             const copyAllText = `Bank Name: ${bank.bankName}\nAccount Number: ${bank.accNumber}\nPrimary Account Holder: ${primaryHolder}\nIFSC Code: ${bank.ifsc}\nBranch Name: ${bank.branch}`;
             const safeCopyAllText = copyAllText.replace(/'/g, "\\'").replace(/\n/g, "\\n");
+            const safePersonName = personName.replace(/'/g, "\\'");
 
             bankHtml += `<div class="bank-card p-5 rounded-xl border border-white/10 relative overflow-hidden group shadow-lg flex flex-col">
               <i class="fa-solid fa-building-columns absolute -right-4 -bottom-4 text-[80px] text-white/[0.03] transform group-hover:scale-110 transition-transform duration-500"></i>
+              <!-- Edit/Delete buttons -->
+              <div class="absolute top-3 right-3 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                <button onclick="event.stopPropagation(); openBankModal('${safePersonName}', ${bankIdx})" class="w-7 h-7 rounded bg-white/10 hover:bg-white/20 flex items-center justify-center text-yellow-400 hover:text-yellow-300 text-xs" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button onclick="event.stopPropagation(); deleteBankAccount('${safePersonName}', ${bankIdx})" class="w-7 h-7 rounded bg-white/10 hover:bg-red-500/30 flex items-center justify-center text-red-400 hover:text-red-300 text-xs" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              </div>
               <div class="relative z-10 flex-1 flex flex-col">
-                <div class="flex justify-between items-start mb-2">
-                  <h4 class="font-semibold text-lg text-white">${bank.bankName}</h4>
-                  <button onclick="copyText('${safeCopyAllText}', this, true)" class="text-xs text-blue-400 hover:text-blue-300 bg-white/5 hover:bg-white/10 px-2 py-1 rounded transition-colors flex items-center shrink-0 border border-blue-400/30" title="Copy Full Details">
-                    <i class="fa-regular fa-copy mr-1"></i> ${t("banks.copyAll")}
-                  </button>
+                <div class="mb-2 pr-14">
+                  <h4 class="font-semibold text-lg text-white truncate">${bank.bankName}</h4>
                 </div>
-                <p class="text-xs text-gray-400 mb-4 truncate" title="${bank.branch}"><i class="fa-solid fa-location-dot mr-1 text-gray-500"></i> ${bank.branch}</p>
+                <p class="text-xs text-gray-400 mb-3 truncate" title="${bank.branch}"><i class="fa-solid fa-location-dot mr-1 text-gray-500"></i> ${bank.branch}</p>
+                <button onclick="copyText('${safeCopyAllText}', this, true)" class="text-xs text-blue-400 hover:text-blue-300 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center w-full border border-blue-400/30 mb-3" title="Copy Full Details">
+                  <i class="fa-regular fa-copy mr-1"></i> ${t("banks.copyAll")}
+                </button>
                 <div class="space-y-2 mt-auto">
                   <div class="flex justify-between items-center bg-black/40 border border-white/5 p-2.5 rounded-lg hover:bg-black/60 transition-colors group/row">
                     <span class="text-xs text-gray-400 shrink-0 mr-2">${t("banks.holder")}</span>
@@ -1670,8 +2328,8 @@
           banksGrid.innerHTML = bankHtml;
           banksContainer.classList.remove("hidden");
         } else {
-          banksContainer.classList.add("hidden");
-          banksGrid.innerHTML = "";
+          banksContainer.classList.remove("hidden");
+          banksGrid.innerHTML = `<p class="text-gray-500 text-sm italic col-span-full">${t("banks.noAccounts")}</p>`;
         }
 
         // Other Docs
@@ -1697,7 +2355,7 @@
               </div>
               <div class="flex space-x-2 mt-auto border-t border-white/5 pt-3">
                 <button onclick="previewFile('${f.id}', '${f.name}')" class="glass-button flex-1 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-regular fa-eye mr-1"></i> ${t("docCards.preview")}</button>
-                <button onclick="downloadFile('${f.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-solid fa-download"></i></button>
+                <button onclick="downloadFile('${f.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center" title="Download"><i class="fa-solid fa-download"></i></button>
                 <button onclick="shareViaWhatsApp('${f.name}', '${f.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
                 <button onclick="event.stopPropagation(); confirmDeleteFile('${f.id}', '${f.name.replace(/'/g, "\\'")}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete"><i class="fa-solid fa-trash"></i></button>
               </div>
@@ -1711,20 +2369,12 @@
         }
 
         showView("member-detail");
+        applyTranslations();
       }
 
       function renderVehiclesList() {
         const grid = document.getElementById("vehicles-grid");
         let html = "";
-        // Add Vehicle button card
-        html += `<div class="glass-panel rounded-2xl overflow-hidden cursor-pointer group border-dashed border-2 border-white/10 hover:border-purple-400/50 transition-all min-h-[60px] flex items-center justify-center" onclick="openAddVehicleModal()">
-          <div class="p-4 text-center flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-all">
-              <i class="fa-solid fa-plus text-xl text-purple-400"></i>
-            </div>
-            <p class="text-sm text-purple-400 group-hover:text-purple-300 font-medium" data-i18n="actions.addVehicle">Add Vehicle</p>
-          </div>
-        </div>`;
         appState.vehicles.forEach((veh) => {
           const escapedName = veh.name.replace(/'/g, "\\'");
           let docsHtml = "";
@@ -1738,7 +2388,7 @@
                 ${renewalInfo ? `<p class="text-[9px] text-amber-400 mt-0.5 ml-4">${t("renewals.due")} ${renewalInfo.dateString}</p>` : ''}
               </div>
               <div class="flex space-x-1 shrink-0">
-                <button onclick="previewFile('${file.id}', '${file.name}')" class="text-blue-400 hover:text-white px-2"><i class="fa-regular fa-eye"></i></button>
+                <button onclick="previewFile('${file.id}', '${file.name}')" class="text-blue-400 hover:text-white px-2" title="Preview"><i class="fa-regular fa-eye"></i></button>
                 <button onclick="shareViaWhatsApp('${file.name}', '${file.id}')" class="text-green-400 hover:text-green-300 px-2" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
                 <button onclick="event.stopPropagation(); confirmDeleteFile('${file.id}', '${file.name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-300 px-2" title="Delete file"><i class="fa-solid fa-trash text-xs"></i></button>
               </div>
@@ -1769,15 +2419,6 @@
       function renderPropertiesList() {
         const grid = document.getElementById("properties-grid");
         let html = "";
-        // Add Property button card
-        html += `<div class="glass-panel rounded-2xl overflow-hidden cursor-pointer group border-dashed border-2 border-white/10 hover:border-emerald-400/50 transition-all min-h-[60px] flex items-center justify-center" onclick="openAddPropertyModal()">
-          <div class="p-4 text-center flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-all">
-              <i class="fa-solid fa-plus text-xl text-emerald-400"></i>
-            </div>
-            <p class="text-sm text-emerald-400 group-hover:text-emerald-300 font-medium" data-i18n="actions.addProperty">Add Property</p>
-          </div>
-        </div>`;
         appState.properties.forEach((prop) => {
           const escapedName = prop.name.replace(/'/g, "\\'");
           let docsHtml = "";
@@ -1791,7 +2432,7 @@
                 ${renewalInfo ? `<p class="text-[9px] text-amber-400 mt-0.5 ml-4">${t("renewals.due")} ${renewalInfo.dateString}</p>` : ''}
               </div>
               <div class="flex space-x-1 shrink-0">
-                <button onclick="previewFile('${file.id}', '${file.name}')" class="text-blue-400 hover:text-white px-2"><i class="fa-regular fa-eye"></i></button>
+                <button onclick="previewFile('${file.id}', '${file.name}')" class="text-blue-400 hover:text-white px-2" title="Preview"><i class="fa-regular fa-eye"></i></button>
                 <button onclick="shareViaWhatsApp('${file.name}', '${file.id}')" class="text-green-400 hover:text-green-300 px-2" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
                 <button onclick="event.stopPropagation(); confirmDeleteFile('${file.id}', '${file.name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-300 px-2" title="Delete file"><i class="fa-solid fa-trash text-xs"></i></button>
               </div>
@@ -1845,10 +2486,10 @@
             <div class="flex items-center justify-between sm:justify-end shrink-0 w-full sm:w-auto">
               <span class="text-xs font-medium px-3 py-1 rounded bg-black/30 ${iconClass} mr-4">${dayText}</span>
               <div class="flex space-x-2">
-                <button onclick="previewFile('${r.file.id}', '${r.file.name}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-gray-300 hover:text-white"><i class="fa-regular fa-eye"></i></button>
-                <button onclick="downloadFile('${r.file.id}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-gray-300 hover:text-white"><i class="fa-solid fa-download"></i></button>
+                <button onclick="previewFile('${r.file.id}', '${r.file.name}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-gray-300 hover:text-white" title="Preview"><i class="fa-regular fa-eye"></i></button>
+                <button onclick="downloadFile('${r.file.id}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-gray-300 hover:text-white" title="Download"><i class="fa-solid fa-download"></i></button>
                 <button onclick="shareViaWhatsApp('${r.cleanName}', '${r.file.id}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
-                <button onclick="openUpdateDueDateModal('${r.file.id}', '${r.file.name.replace(/'/g, "\\'")}', '${r.dateString}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-amber-400 hover:text-amber-300" title="Update Due Date"><i class="fa-solid fa-calendar-pen text-xs"></i></button>
+                <button onclick="openUpdateDueDateModal('${r.file.id}', '${r.file.name.replace(/'/g, "\\'")}', '${r.dateString}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-amber-400 hover:text-amber-300" title="Update Due Date"><i class="fa-solid fa-calendar-plus text-xs"></i></button>
                 <button onclick="event.stopPropagation(); confirmDeleteFile('${r.file.id}', '${r.file.name.replace(/'/g, "\\'")}')" class="glass-button w-8 h-8 rounded flex justify-center items-center text-red-400 hover:text-red-300" title="Delete"><i class="fa-solid fa-trash text-xs"></i></button>
               </div>
             </div>
@@ -1876,8 +2517,8 @@
               <span class="ml-2 lg:ml-3 text-xs lg:text-sm font-medium text-gray-200 truncate">${file.name}</span>
             </div>
             <div class="flex space-x-2 lg:space-x-3 shrink-0">
-              <button onclick="previewFile('${file.id}', '${file.name}')" class="text-gray-400 hover:text-white transition-colors p-2"><i class="fa-regular fa-eye"></i></button>
-              <button onclick="downloadFile('${file.id}')" class="text-gray-400 hover:text-white transition-colors p-2"><i class="fa-solid fa-download"></i></button>
+              <button onclick="previewFile('${file.id}', '${file.name}')" class="text-gray-400 hover:text-white transition-colors p-2" title="Preview"><i class="fa-regular fa-eye"></i></button>
+              <button onclick="downloadFile('${file.id}')" class="text-gray-400 hover:text-white transition-colors p-2" title="Download"><i class="fa-solid fa-download"></i></button>
               <button onclick="shareViaWhatsApp('${file.name}', '${file.id}')" class="text-green-400 hover:text-green-300 transition-colors p-2" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
               <button onclick="confirmDeleteFile('${file.id}', '${file.name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-300 transition-colors p-2 opacity-0 group-hover:opacity-100" title="Delete"><i class="fa-solid fa-trash text-xs"></i></button>
             </div>
@@ -2026,20 +2667,20 @@
         // ── Mock Bank Data ───────────────────────────────────
         appState.bankData = [
           {
-            person: "Rajesh Kumar",
+            person: "Rajesh Kumar", email: "rajesh.kumar@email.com", phone: "+91 98765 43210",
             banks: [
               { bankName: "State Bank of India", accNumber: "XXXX XXXX 1234", ifsc: "SBIN0001234", branch: "MG Road, Bengaluru", "Primary Account Holder": "Rajesh Kumar" },
               { bankName: "HDFC Bank", accNumber: "XXXX XXXX 5678", ifsc: "HDFC0005678", branch: "Koramangala, Bengaluru", "Primary Account Holder": "Rajesh Kumar" },
             ]
           },
           {
-            person: "Sunita Kumar",
+            person: "Sunita Kumar", email: "sunita.k@email.com", phone: "+91 87654 32109",
             banks: [
               { bankName: "ICICI Bank", accNumber: "XXXX XXXX 9012", ifsc: "ICIC0009012", branch: "Jayanagar, Bengaluru", "Primary Account Holder": "Sunita Kumar" },
             ]
           },
           {
-            person: "Dadaji",
+            person: "Dadaji", email: "", phone: "+91 76543 21098",
             banks: [
               { bankName: "Canara Bank", accNumber: "XXXX XXXX 3456", ifsc: "CNRB0003456", branch: "Bhadravathi Main", "Primary Account Holder": "Dadaji" },
             ]
@@ -2057,21 +2698,45 @@
         // ── Health vitals (demo data in localStorage) ────────
         const demoVitals = {
           "Rajesh Kumar": [
-            { date: "2026-07-15", bpSystolic: 128, bpDiastolic: 84, sugarFasting: 102, weight: 76, height: 172, heartRate: 74, notes: "Morning fasting" },
-            { date: "2026-04-10", bpSystolic: 132, bpDiastolic: 86, sugarFasting: 108, weight: 78, height: 172, heartRate: 76, notes: "After walk" },
+            { date: "2026-07-15", bpSystolic: 128, bpDiastolic: 84, sugarFasting: 102, hba1c: 5.8, weight: 76, height: 172, heartRate: 74, hemoglobin: 14.8, cholesterol: 185, hdl: 44, ldl: 112, triglycerides: 155, vitaminD: 28, vitaminB12: 380, creatinine: 0.9, notes: "Morning fasting, annual checkup" },
+            { date: "2026-04-10", bpSystolic: 132, bpDiastolic: 86, sugarFasting: 108, hba1c: 6.1, weight: 78, height: 172, heartRate: 76, hemoglobin: 14.2, cholesterol: 198, hdl: 42, ldl: 120, triglycerides: 170, vitaminD: 22, vitaminB12: 350, creatinine: 1.0, notes: "After walk, slight elevation" },
+            { date: "2026-01-20", bpSystolic: 126, bpDiastolic: 82, sugarFasting: 98, hba1c: 5.6, weight: 77, height: 172, heartRate: 72, hemoglobin: 15.0, cholesterol: 178, hdl: 46, ldl: 108, triglycerides: 140, vitaminD: 32, vitaminB12: 420, creatinine: 0.85, notes: "Fasting, all normal" },
+            { date: "2025-10-05", bpSystolic: 130, bpDiastolic: 85, sugarFasting: 105, hba1c: 5.9, weight: 79, height: 172, heartRate: 78, hemoglobin: 14.5, cholesterol: 190, hdl: 43, ldl: 115, triglycerides: 160, vitaminD: 25, vitaminB12: 360, creatinine: 0.95, notes: "Post-Diwali checkup" },
+            { date: "2025-06-18", bpSystolic: 124, bpDiastolic: 80, sugarFasting: 95, hba1c: 5.5, weight: 75, height: 172, heartRate: 70, hemoglobin: 15.1, cholesterol: 175, hdl: 48, ldl: 105, triglycerides: 135, vitaminD: 35, vitaminB12: 450, creatinine: 0.82, notes: "Best numbers, after 3 months of diet" },
           ],
           "Sunita Kumar": [
-            { date: "2026-07-20", bpSystolic: 118, bpDiastolic: 76, sugarFasting: 92, weight: 62, height: 160, heartRate: 70, notes: "Fasting" },
+            { date: "2026-07-20", bpSystolic: 118, bpDiastolic: 76, sugarFasting: 92, hba1c: 5.4, weight: 62, height: 160, heartRate: 70, hemoglobin: 12.8, cholesterol: 170, hdl: 52, ldl: 100, triglycerides: 130, vitaminD: 30, vitaminB12: 400, creatinine: 0.75, notes: "Fasting, thyroid normal" },
+            { date: "2026-03-12", bpSystolic: 115, bpDiastolic: 74, sugarFasting: 90, hba1c: 5.3, weight: 63, height: 160, heartRate: 68, hemoglobin: 12.5, cholesterol: 165, hdl: 54, ldl: 95, triglycerides: 125, vitaminD: 28, vitaminB12: 380, creatinine: 0.72, notes: "Routine checkup" },
+            { date: "2025-11-08", bpSystolic: 120, bpDiastolic: 78, sugarFasting: 94, hba1c: 5.5, weight: 64, height: 160, heartRate: 72, hemoglobin: 12.3, cholesterol: 175, hdl: 50, ldl: 102, triglycerides: 140, vitaminD: 24, vitaminB12: 340, creatinine: 0.78, notes: "Post-festival check" },
           ],
           "Dadaji": [
-            { date: "2026-08-01", bpSystolic: 145, bpDiastolic: 90, sugarFasting: 130, weight: 68, height: 165, heartRate: 78, notes: "After breakfast" },
-            { date: "2026-06-15", bpSystolic: 150, bpDiastolic: 92, sugarFasting: 140, weight: 69, height: 165, heartRate: 80, notes: "Evening reading" },
+            { date: "2026-08-01", bpSystolic: 145, bpDiastolic: 90, sugarFasting: 130, hba1c: 6.8, weight: 68, height: 165, heartRate: 78, hemoglobin: 13.2, cholesterol: 210, hdl: 38, ldl: 135, triglycerides: 180, vitaminD: 18, vitaminB12: 280, creatinine: 1.15, notes: "After breakfast, needs attention" },
+            { date: "2026-06-15", bpSystolic: 150, bpDiastolic: 92, sugarFasting: 140, hba1c: 7.1, weight: 69, height: 165, heartRate: 80, hemoglobin: 13.0, cholesterol: 220, hdl: 36, ldl: 140, triglycerides: 195, vitaminD: 15, vitaminB12: 250, creatinine: 1.2, notes: "Evening reading, BP high" },
+            { date: "2026-03-01", bpSystolic: 142, bpDiastolic: 88, sugarFasting: 125, hba1c: 6.5, weight: 67, height: 165, heartRate: 76, hemoglobin: 13.5, cholesterol: 200, hdl: 40, ldl: 128, triglycerides: 170, vitaminD: 20, vitaminB12: 300, creatinine: 1.1, notes: "Morning, slight improvement" },
+            { date: "2025-12-10", bpSystolic: 148, bpDiastolic: 91, sugarFasting: 135, hba1c: 7.0, weight: 70, height: 165, heartRate: 82, hemoglobin: 12.8, cholesterol: 215, hdl: 37, ldl: 138, triglycerides: 185, vitaminD: 16, vitaminB12: 260, creatinine: 1.18, notes: "Winter checkup" },
           ],
           "Aarav Kumar": [
             { date: "2026-06-01", bpSystolic: 110, bpDiastolic: 70, sugarFasting: 88, weight: 45, height: 148, heartRate: 72, notes: "Annual checkup" },
           ],
         };
         safeStorageSet("vault_health_vitals", JSON.stringify(demoVitals));
+
+        // ── Utility Bills (demo data) ───────────────────────
+        const demoUtils = [
+          { id: "util_demo_1", type: "electricity", name: "BESCOM Electricity", amount: 2450, dueDate: "2026-08-15", frequency: "monthly", status: "pending", lastPaid: "2026-07-15", notes: "Flat 3B meter" },
+          { id: "util_demo_2", type: "gas", name: "Gail Gas Pipeline", amount: 890, dueDate: "2026-08-10", frequency: "monthly", status: "pending", lastPaid: "2026-07-10", notes: "" },
+          { id: "util_demo_3", type: "water", name: "BWSSB Water Supply", amount: 420, dueDate: "2026-07-25", frequency: "monthly", status: "overdue", lastPaid: "2026-06-28", notes: "Late — pay ASAP" },
+          { id: "util_demo_4", type: "phone", name: "Airtel Postpaid — Rajesh", amount: 699, dueDate: "2026-08-05", frequency: "monthly", status: "pending", lastPaid: "2026-07-05", notes: "Family plan 2 lines" },
+          { id: "util_demo_5", type: "phone", name: "Jio Fiber Broadband", amount: 999, dueDate: "2026-08-08", frequency: "monthly", status: "pending", lastPaid: "2026-07-08", notes: "100 Mbps plan" },
+          { id: "util_demo_6", type: "rent", name: "Apartment Maintenance", amount: 3500, dueDate: "2026-08-05", frequency: "monthly", status: "pending", lastPaid: "2026-07-05", notes: "Shanti Apartments" },
+          { id: "util_demo_7", type: "subscription", name: "Netflix Premium", amount: 649, dueDate: "2026-08-18", frequency: "monthly", status: "pending", lastPaid: "2026-07-18", notes: "4K + 4 screens" },
+          { id: "util_demo_8", type: "subscription", name: "Amazon Prime", amount: 1499, dueDate: "2026-12-15", frequency: "yearly", status: "pending", lastPaid: "2025-12-15", notes: "Annual renewal" },
+          { id: "util_demo_9", type: "subscription", name: "Spotify Family", amount: 179, dueDate: "2026-08-22", frequency: "monthly", status: "pending", lastPaid: "2026-07-22", notes: "6 accounts" },
+          { id: "util_demo_10", type: "subscription", name: "Google One 200GB", amount: 210, dueDate: "2026-08-12", frequency: "monthly", status: "pending", lastPaid: "2026-07-12", notes: "Family storage" },
+          { id: "util_demo_11", type: "electricity", name: "BESCOM — Ancestral Home", amount: 780, dueDate: "2026-08-20", frequency: "monthly", status: "pending", lastPaid: "2026-07-20", notes: "Bhadravathi house" },
+          { id: "util_demo_12", type: "rent", name: "Parking Slot Rent", amount: 1500, dueDate: "2026-08-01", frequency: "monthly", status: "overdue", lastPaid: "2026-07-01", notes: "Basement slot B-12" },
+        ];
+        safeStorageSet("vault_utilities", JSON.stringify(demoUtils));
 
         // ── Remove cached real data ──────────────────────────
         safeStorageRemove("vault_cache_v3");
@@ -2161,6 +2826,7 @@
         document.getElementById("add-vitals-form").classList.add("hidden");
         renderVitalsCards(personName);
         renderVitalsTable(personName);
+        renderVitalsChart(personName);
         renderMedicalDocs(person);
       }
 
@@ -2182,8 +2848,12 @@
         const items = [
           { label: t("medical.bp"), value: latest.bpSystolic ? `${latest.bpSystolic}/${latest.bpDiastolic || "?"}` : "--", color: "rose", icon: "fa-heart" },
           { label: t("medical.sugar"), value: latest.sugarFasting ? `${latest.sugarFasting} mg/dL` : "--", color: "amber", icon: "fa-droplet" },
+          { label: "HbA1c", value: latest.hba1c ? `${latest.hba1c}%` : "--", color: "purple", icon: "fa-vial" },
           { label: t("medical.weight"), value: latest.weight ? `${latest.weight} kg` : "--", color: "blue", icon: "fa-weight-scale" },
           { label: "BMI", value: bmi, color: bmi > 25 ? "amber" : "green", icon: "fa-calculator" },
+          { label: "Hemoglobin", value: latest.hemoglobin ? `${latest.hemoglobin} g/dL` : "--", color: "red", icon: "fa-tint" },
+          { label: "Cholesterol", value: latest.cholesterol ? `${latest.cholesterol} mg/dL` : "--", color: "orange", icon: "fa-egg" },
+          { label: "Vit D", value: latest.vitaminD ? `${latest.vitaminD} ng/mL` : "--", color: "yellow", icon: "fa-sun" },
         ];
         cards.innerHTML = items.map(i =>
           `<div class="glass-card p-3 lg:p-4 rounded-xl text-center">
@@ -2211,11 +2881,12 @@
             <td class="p-2 text-gray-300">${new Date(v.date).toLocaleDateString()}</td>
             <td class="p-2 text-center font-mono text-white">${v.bpSystolic ? `${v.bpSystolic}/${v.bpDiastolic || "?"}` : "--"}</td>
             <td class="p-2 text-center font-mono text-white">${v.sugarFasting || "--"}</td>
+            <td class="p-2 text-center font-mono text-white">${v.hba1c != null ? v.hba1c + "%" : "--"}</td>
             <td class="p-2 text-center font-mono text-white">${v.weight || "--"}</td>
             <td class="p-2 text-center font-mono ${bmi > 25 ? "text-amber-400" : "text-green-400"}">${bmi}</td>
             <td class="p-2 text-center font-mono text-white">${v.heartRate || "--"}</td>
             <td class="p-2 text-gray-400 hidden lg:table-cell max-w-[120px] truncate">${v.notes || ""}</td>
-            <td class="p-2"><button onclick="deleteVitalsRow('${personName.replace(/'/g, "\\'")}', ${i})" class="text-red-400 hover:text-red-300 text-xs"><i class="fa-solid fa-trash"></i></button></td>
+            <td class="p-2"><button onclick="deleteVitalsRow('${personName.replace(/'/g, "\\'")}', ${i})" class="text-red-400 hover:text-red-300 text-xs" title="Delete reading"><i class="fa-solid fa-trash"></i></button></td>
           </tr>`;
         }).join("");
       }
@@ -2260,14 +2931,123 @@
                 </div>
               </div>
               <div class="flex space-x-1 shrink-0">
-                <button onclick="previewFile('${f.id}', '${f.name}')" class="text-gray-400 hover:text-white p-1.5"><i class="fa-regular fa-eye"></i></button>
-                <button onclick="downloadFile('${f.id}')" class="text-gray-400 hover:text-white p-1.5"><i class="fa-solid fa-download"></i></button>
+                <button onclick="previewFile('${f.id}', '${f.name}')" class="text-gray-400 hover:text-white p-1.5" title="Preview"><i class="fa-regular fa-eye"></i></button>
+                <button onclick="downloadFile('${f.id}')" class="text-gray-400 hover:text-white p-1.5" title="Download"><i class="fa-solid fa-download"></i></button>
                 <button onclick="shareViaWhatsApp('${f.name}', '${f.id}')" class="text-green-400 hover:text-green-300 p-1.5" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
               </div>
             </div>`;
           });
         });
         grid.innerHTML = html;
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // HEALTH TRENDS CHARTS
+      // ═══════════════════════════════════════════════════════
+      let vitalsChartInstance = null;
+
+      function renderVitalsChart(personName) {
+        const section = document.getElementById("vitals-trends-section");
+        const canvas = document.getElementById("vitals-trend-canvas");
+        const empty = document.getElementById("vitals-trend-empty");
+        const metric = document.getElementById("vitals-chart-metric").value;
+
+        const vitals = getPersonVitals(personName).reverse(); // chronological
+        if (vitals.length < 2) {
+          if (vitalsChartInstance) { vitalsChartInstance.destroy(); vitalsChartInstance = null; }
+          section.classList.add("hidden");
+          return;
+        }
+
+        const labels = vitals.map(v => new Date(v.date).toLocaleDateString("en-IN", { day:"numeric", month:"short" }));
+
+        function getData(field) {
+          return vitals.map(v => v[field] != null ? v[field] : null);
+        }
+
+        let datasets = [];
+        let yLabel = "";
+
+        switch (metric) {
+          case "bp":
+            datasets = [
+              { label: "Systolic", data: getData("bpSystolic"), borderColor: "#f87171", backgroundColor: "rgba(248,113,113,0.1)", tension: 0.3, fill: false, pointRadius: 4 },
+              { label: "Diastolic", data: getData("bpDiastolic"), borderColor: "#fb923c", backgroundColor: "rgba(251,146,60,0.1)", tension: 0.3, fill: false, pointRadius: 4 },
+            ];
+            yLabel = "mm Hg";
+            break;
+          case "sugar":
+            datasets = [{ label: "Fasting Sugar", data: getData("sugarFasting"), borderColor: "#fbbf24", backgroundColor: "rgba(251,191,36,0.15)", tension: 0.3, fill: true, pointRadius: 4 }];
+            yLabel = "mg/dL";
+            break;
+          case "weight":
+            datasets = [{ label: "Weight", data: getData("weight"), borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,0.15)", tension: 0.3, fill: true, pointRadius: 4 }];
+            yLabel = "kg";
+            break;
+          case "hr":
+            datasets = [{ label: "Heart Rate", data: getData("heartRate"), borderColor: "#f472b6", backgroundColor: "rgba(244,114,182,0.15)", tension: 0.3, fill: true, pointRadius: 4 }];
+            yLabel = "bpm";
+            break;
+          case "hba1c":
+            datasets = [{ label: "HbA1c", data: getData("hba1c"), borderColor: "#a78bfa", backgroundColor: "rgba(167,139,250,0.15)", tension: 0.3, fill: true, pointRadius: 4 }];
+            yLabel = "%";
+            break;
+          case "cholesterol":
+            datasets = [
+              { label: "Total", data: getData("cholesterol"), borderColor: "#f87171", backgroundColor: "rgba(248,113,113,0.1)", tension: 0.3, fill: false, pointRadius: 4 },
+              { label: "HDL", data: getData("hdl"), borderColor: "#34d399", backgroundColor: "rgba(52,211,153,0.1)", tension: 0.3, fill: false, pointRadius: 4 },
+              { label: "LDL", data: getData("ldl"), borderColor: "#fbbf24", backgroundColor: "rgba(251,191,36,0.1)", tension: 0.3, fill: false, pointRadius: 4 },
+            ];
+            yLabel = "mg/dL";
+            break;
+          case "hemoglobin":
+            datasets = [{ label: "Hemoglobin", data: getData("hemoglobin"), borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.15)", tension: 0.3, fill: true, pointRadius: 4 }];
+            yLabel = "g/dL";
+            break;
+          case "vitaminD":
+            datasets = [{ label: "Vitamin D", data: getData("vitaminD"), borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.15)", tension: 0.3, fill: true, pointRadius: 4 }];
+            yLabel = "ng/mL";
+            break;
+          case "vitaminB12":
+            datasets = [{ label: "Vitamin B12", data: getData("vitaminB12"), borderColor: "#22d3ee", backgroundColor: "rgba(34,211,238,0.15)", tension: 0.3, fill: true, pointRadius: 4 }];
+            yLabel = "pg/mL";
+            break;
+        }
+
+        // Filter out datasets with no data
+        datasets = datasets.filter(ds => ds.data.some(v => v != null));
+        if (datasets.length === 0) {
+          empty.classList.remove("hidden");
+          canvas.style.display = "none";
+          section.classList.remove("hidden");
+          if (vitalsChartInstance) { vitalsChartInstance.destroy(); vitalsChartInstance = null; }
+          return;
+        }
+
+        empty.classList.add("hidden");
+        canvas.style.display = "block";
+        section.classList.remove("hidden");
+
+        if (vitalsChartInstance) vitalsChartInstance.destroy();
+
+        const ctx = canvas.getContext("2d");
+        vitalsChartInstance = new Chart(ctx, {
+          type: "line",
+          data: { labels, datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { color: "#94a3b8", font: { size: 11 }, usePointStyle: true, padding: 16 } },
+              tooltip: { backgroundColor: "rgba(15,23,42,0.95)", titleColor: "#f1f5f9", bodyColor: "#cbd5e1", borderColor: "rgba(255,255,255,0.1)", borderWidth: 1, padding: 10 }
+            },
+            scales: {
+              x: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.05)" } },
+              y: { title: { display: true, text: yLabel, color: "#64748b" }, ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.05)" }, beginAtZero: false }
+            },
+            interaction: { intersect: false, mode: "index" }
+          }
+        });
       }
 
       function showAddVitalsForm() {
@@ -2283,33 +3063,40 @@
         const bpSystolic = parseInt(document.getElementById("vital-bp-sys").value) || null;
         const bpDiastolic = parseInt(document.getElementById("vital-bp-dia").value) || null;
         const sugarFasting = parseInt(document.getElementById("vital-sugar").value) || null;
+        const hba1c = parseFloat(document.getElementById("vital-hba1c").value) || null;
         const weight = parseFloat(document.getElementById("vital-weight").value) || null;
         const height = parseFloat(document.getElementById("vital-height").value) || null;
         const heartRate = parseInt(document.getElementById("vital-hr").value) || null;
+        const hemoglobin = parseFloat(document.getElementById("vital-hb").value) || null;
+        const cholesterol = parseInt(document.getElementById("vital-chol").value) || null;
+        const hdl = parseInt(document.getElementById("vital-hdl").value) || null;
+        const ldl = parseInt(document.getElementById("vital-ldl").value) || null;
+        const triglycerides = parseInt(document.getElementById("vital-trig").value) || null;
+        const vitaminD = parseFloat(document.getElementById("vital-vitd").value) || null;
+        const vitaminB12 = parseInt(document.getElementById("vital-b12").value) || null;
+        const creatinine = parseFloat(document.getElementById("vital-creat").value) || null;
         const date = document.getElementById("vital-date").value || new Date().toISOString().split("T")[0];
         const notes = document.getElementById("vital-notes").value.trim();
 
-        if (!bpSystolic && !sugarFasting && !weight && !heartRate) {
+        if (!bpSystolic && !sugarFasting && !weight && !heartRate && !hba1c && !hemoglobin && !cholesterol) {
           alert("Please enter at least one vital reading.");
           return;
         }
 
-        const reading = { date, bpSystolic, bpDiastolic, sugarFasting, weight, height, heartRate, notes };
+        const reading = { date, bpSystolic, bpDiastolic, sugarFasting, hba1c, weight, height, heartRate, hemoglobin, cholesterol, hdl, ldl, triglycerides, vitaminD, vitaminB12, creatinine, notes };
         const data = getVitalsData();
         if (!data[medicalSelectedPerson]) data[medicalSelectedPerson] = [];
         data[medicalSelectedPerson].push(reading);
         saveVitalsData(data);
 
-        document.getElementById("vital-bp-sys").value = "";
-        document.getElementById("vital-bp-dia").value = "";
-        document.getElementById("vital-sugar").value = "";
-        document.getElementById("vital-weight").value = "";
-        document.getElementById("vital-height").value = "";
-        document.getElementById("vital-hr").value = "";
-        document.getElementById("vital-notes").value = "";
+        // Clear all fields
+        ["vital-bp-sys","vital-bp-dia","vital-sugar","vital-hba1c","vital-weight","vital-height","vital-hr","vital-hb","vital-chol","vital-hdl","vital-ldl","vital-trig","vital-vitd","vital-b12","vital-creat","vital-notes"].forEach(id => {
+          document.getElementById(id).value = "";
+        });
         hideAddVitalsForm();
         renderVitalsCards(medicalSelectedPerson);
         renderVitalsTable(medicalSelectedPerson);
+        renderVitalsChart(medicalSelectedPerson);
       }
 
       function deleteVitalsRow(personName, index) {
@@ -2321,6 +3108,204 @@
         saveVitalsData(data);
         renderVitalsCards(personName);
         renderVitalsTable(personName);
+        renderVitalsChart(personName);
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // UTILITY BILLS MANAGER
+      // ═══════════════════════════════════════════════════════
+      const UTIL_STORAGE_KEY = "vault_utilities";
+      let utilFilter = "all";
+      let utilEditId = null;
+
+      function getUtilities() {
+        try { return JSON.parse(safeStorageGet(UTIL_STORAGE_KEY)) || []; }
+        catch (e) { return []; }
+      }
+      function saveUtilities(data) {
+        safeStorageSet(UTIL_STORAGE_KEY, JSON.stringify(data));
+      }
+
+      function openUtilityModal(editId = null) {
+        utilEditId = editId;
+        document.getElementById("utility-modal-title").textContent = editId ? t("utils.editBill") : t("utils.addBill");
+        document.getElementById("utility-modal-title").setAttribute("data-i18n", editId ? "utils.editBill" : "utils.addBill");
+        if (editId) {
+          const utils = getUtilities();
+          const bill = utils.find(u => u.id === editId);
+          if (bill) {
+            document.getElementById("util-input-type").value = bill.type;
+            document.getElementById("util-input-name").value = bill.name;
+            document.getElementById("util-input-amount").value = bill.amount;
+            document.getElementById("util-input-due").value = bill.dueDate;
+            document.getElementById("util-input-freq").value = bill.frequency;
+            document.getElementById("util-input-notes").value = bill.notes || "";
+          }
+        } else {
+          document.getElementById("util-input-type").value = "electricity";
+          document.getElementById("util-input-name").value = "";
+          document.getElementById("util-input-amount").value = "";
+          document.getElementById("util-input-due").value = new Date().toISOString().split("T")[0];
+          document.getElementById("util-input-freq").value = "monthly";
+          document.getElementById("util-input-notes").value = "";
+        }
+        document.getElementById("modal-utility-bill").classList.remove("hidden-modal");
+      }
+
+      function closeUtilityModal() {
+        document.getElementById("modal-utility-bill").classList.add("hidden-modal");
+        utilEditId = null;
+      }
+
+      function saveUtilityBill() {
+        const type = document.getElementById("util-input-type").value;
+        const name = document.getElementById("util-input-name").value.trim();
+        const amount = parseInt(document.getElementById("util-input-amount").value) || 0;
+        const dueDate = document.getElementById("util-input-due").value;
+        const frequency = document.getElementById("util-input-freq").value;
+        const notes = document.getElementById("util-input-notes").value.trim();
+
+        if (!name || !amount) { showToast("Please enter name and amount.", "error"); return; }
+
+        const utils = getUtilities();
+        if (utilEditId) {
+          const idx = utils.findIndex(u => u.id === utilEditId);
+          if (idx >= 0) {
+            utils[idx] = { ...utils[idx], type, name, amount, dueDate, frequency, notes };
+          }
+        } else {
+          utils.push({
+            id: "util_" + Date.now(), type, name, amount, dueDate, frequency,
+            status: "pending", lastPaid: null, notes, createdAt: new Date().toISOString()
+          });
+        }
+        saveUtilities(utils);
+        closeUtilityModal();
+        renderUtilities();
+        showToast(utilEditId ? "Bill updated!" : "Bill added!", "success");
+      }
+
+      function markUtilityPaid(id) {
+        const utils = getUtilities();
+        const bill = utils.find(u => u.id === id);
+        if (!bill) return;
+        bill.status = "paid";
+        bill.lastPaid = new Date().toISOString().split("T")[0];
+        // Auto-advance due date for recurring bills
+        if (bill.frequency === "monthly" && bill.dueDate) {
+          const d = new Date(bill.dueDate);
+          d.setMonth(d.getMonth() + 1);
+          bill.dueDate = d.toISOString().split("T")[0];
+          bill.status = "pending";
+        } else if (bill.frequency === "quarterly" && bill.dueDate) {
+          const d = new Date(bill.dueDate);
+          d.setMonth(d.getMonth() + 3);
+          bill.dueDate = d.toISOString().split("T")[0];
+          bill.status = "pending";
+        } else if (bill.frequency === "yearly" && bill.dueDate) {
+          const d = new Date(bill.dueDate);
+          d.setFullYear(d.getFullYear() + 1);
+          bill.dueDate = d.toISOString().split("T")[0];
+          bill.status = "pending";
+        }
+        saveUtilities(utils);
+        renderUtilities();
+        showToast("'" + bill.name + "' marked as paid!", "success");
+      }
+
+      function deleteUtilityBill(id) {
+        if (!confirm("Delete this bill?")) return;
+        let utils = getUtilities();
+        utils = utils.filter(u => u.id !== id);
+        saveUtilities(utils);
+        renderUtilities();
+        showToast("Bill deleted.", "success");
+      }
+
+      function filterUtilities(type) {
+        utilFilter = type;
+        document.querySelectorAll(".util-filter-btn").forEach(b => {
+          b.classList.remove("bg-white/10", "text-white");
+          b.classList.add("bg-white/5", "text-gray-400");
+          if (b.dataset.filter === type) {
+            b.classList.remove("bg-white/5", "text-gray-400");
+            b.classList.add("bg-white/10", "text-white");
+          }
+        });
+        renderUtilities();
+      }
+
+      function renderUtilities() {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const thisMonth = today.getMonth();
+        const utils = getUtilities();
+
+        // Mark overdue
+        utils.forEach(u => {
+          if (u.status === "pending" && u.dueDate && new Date(u.dueDate) < today) {
+            u.status = "overdue";
+          }
+        });
+
+        // Summary
+        const filtered = utilFilter === "all" ? utils : utils.filter(u => u.type === utilFilter);
+        const monthTotal = filtered.filter(u => new Date(u.dueDate).getMonth() === thisMonth).reduce((s, u) => s + u.amount, 0);
+        const pending = filtered.filter(u => u.status === "pending").length;
+        const overdue = filtered.filter(u => u.status === "overdue").length;
+        const paid = filtered.filter(u => u.status === "paid" && u.lastPaid && new Date(u.lastPaid).getMonth() === thisMonth).length;
+
+        document.getElementById("util-total-month").textContent = "₹" + monthTotal.toLocaleString("en-IN");
+        document.getElementById("util-count-pending").textContent = pending;
+        document.getElementById("util-count-overdue").textContent = overdue;
+        document.getElementById("util-count-paid").textContent = paid;
+
+        // List
+        const list = document.getElementById("utilities-list");
+        const empty = document.getElementById("utilities-empty");
+        if (filtered.length === 0) {
+          list.innerHTML = "";
+          empty.classList.remove("hidden");
+          return;
+        }
+        empty.classList.add("hidden");
+
+        const typeIcons = { electricity: ["fa-bolt", "text-yellow-400"], gas: ["fa-fire", "text-orange-400"], water: ["fa-droplet", "text-blue-400"], phone: ["fa-mobile-screen", "text-purple-400"], rent: ["fa-house", "text-emerald-400"], subscription: ["fa-rotate", "text-cyan-400"], other: ["fa-file-invoice", "text-gray-400"] };
+        const typeColors = { electricity: "border-l-yellow-500", gas: "border-l-orange-500", water: "border-l-blue-500", phone: "border-l-purple-500", rent: "border-l-emerald-500", subscription: "border-l-cyan-500", other: "border-l-gray-500" };
+
+        filtered.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+        list.innerHTML = filtered.map(bill => {
+          const ti = typeIcons[bill.type] || typeIcons.other;
+          const tc = typeColors[bill.type] || typeColors.other;
+          const statusClass = bill.status === "paid" ? "bg-green-500/20 text-green-400" : bill.status === "overdue" ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400";
+          const statusLabel = bill.status === "paid" ? t("utils.paid") : bill.status === "overdue" ? t("utils.overdue") : t("utils.unpaid");
+          const dueDisplay = bill.dueDate ? new Date(bill.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
+          const freqLabel = { monthly: "Monthly", quarterly: "Quarterly", yearly: "Yearly", "one-time": "One-time" }[bill.frequency] || "";
+
+          return `<div class="glass-panel p-4 rounded-xl flex items-center justify-between border-l-4 ${tc} group hover:bg-white/5 transition-colors">
+            <div class="flex items-center space-x-3 lg:space-x-4 min-w-0 flex-1">
+              <i class="fa-solid ${ti[0]} ${ti[1]} text-lg lg:text-xl shrink-0"></i>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center flex-wrap gap-2">
+                  <h4 class="font-medium text-white text-sm lg:text-base truncate">${bill.name}</h4>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded-full ${statusClass}">${statusLabel}</span>
+                </div>
+                <div class="flex items-center gap-3 mt-0.5 text-[10px] lg:text-xs text-gray-400">
+                  <span>₹${bill.amount.toLocaleString("en-IN")}</span>
+                  <span>${dueDisplay}</span>
+                  <span class="hidden sm:inline">${freqLabel}</span>
+                  ${bill.notes ? `<span class="hidden sm:inline text-gray-500 truncate max-w-[120px]">${bill.notes}</span>` : ""}
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center space-x-1 shrink-0 ml-2">
+              ${bill.status !== "paid" ? `<button onclick="markUtilityPaid('${bill.id}')" class="text-xs text-green-400 hover:text-green-300 p-1.5 rounded hover:bg-white/5 transition-colors" title="${t("utils.markPaid")}"><i class="fa-solid fa-check"></i></button>` : ""}
+              <button onclick="openUtilityModal('${bill.id}')" class="text-xs text-gray-400 hover:text-white p-1.5 rounded hover:bg-white/5 transition-colors" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button onclick="deleteUtilityBill('${bill.id}')" class="text-xs text-red-400 hover:text-red-300 p-1.5 rounded hover:bg-white/5 transition-colors" title="${t("utils.delete")}"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>`;
+        }).join("");
+        applyTranslations();
       }
 
       // ═══════════════════════════════════════════════════════
@@ -2388,7 +3373,10 @@
       async function submitAddMember() {
         const name = document.getElementById("new-member-name").value.trim();
         if (!name) { showToast("Please enter a name.", "error"); return; }
+        const btn = document.querySelector("#modal-add-member button[onclick*='submitAddMember']");
+        setBtnLoading(btn, true, "Adding...");
         const result = await apiPost({ action: "createFolder", parentType: "PEOPLE", folderName: name });
+        setBtnLoading(btn, false);
         if (result && result.success) {
           showToast("Member '" + name + "' added successfully!", "success");
           closeAddMemberModal();
@@ -2409,7 +3397,10 @@
       async function submitAddVehicle() {
         const name = document.getElementById("new-vehicle-name").value.trim();
         if (!name) { showToast("Please enter a vehicle name.", "error"); return; }
+        const btn = document.querySelector("#modal-add-vehicle button[onclick*='submitAddVehicle']");
+        setBtnLoading(btn, true, "Adding...");
         const result = await apiPost({ action: "createFolder", parentType: "VEHICLES", folderName: name });
+        setBtnLoading(btn, false);
         if (result && result.success) {
           showToast("Vehicle '" + name + "' added!", "success");
           closeAddVehicleModal();
@@ -2430,7 +3421,10 @@
       async function submitAddProperty() {
         const name = document.getElementById("new-property-name").value.trim();
         if (!name) { showToast("Please enter a property name.", "error"); return; }
+        const btn = document.querySelector("#modal-add-property button[onclick*='submitAddProperty']");
+        setBtnLoading(btn, true, "Adding...");
         const result = await apiPost({ action: "createFolder", parentType: "PROPERTIES", folderName: name });
+        setBtnLoading(btn, false);
         if (result && result.success) {
           showToast("Property '" + name + "' added!", "success");
           closeAddPropertyModal();
@@ -2470,6 +3464,7 @@
         const wasFolderDelete = d.type === "folder";
         const deletedParentType = d.parentType;
         closeConfirmModal();
+        showToast("Deleting...", "info", 2000);
         let result;
         if (d.type === "folder") {
           result = await apiPost({ action: "deleteFolder", parentType: d.parentType, folderName: d.folderName });
@@ -2479,7 +3474,6 @@
         if (result && result.success) {
           showToast("'" + d.label + "' deleted successfully!", "success");
           await silentRefresh();
-          // Navigate back to list view if we deleted a folder
           if (wasFolderDelete) {
             if (deletedParentType === "PEOPLE") navigate("members");
             else if (deletedParentType === "VEHICLES") navigate("vehicles");
@@ -2587,12 +3581,15 @@
         if (!newName) { showToast("Please enter a new name.", "error"); return; }
         if (newName === renameTarget.oldName) { closeRenameModal(); return; }
 
+        const renameBtn = document.querySelector("#modal-rename-item button[onclick*='submitRename']");
+        setBtnLoading(renameBtn, true, "Renaming...");
         const result = await apiPost({
           action: "renameFolderByName",
           parentType: renameTarget.parentType,
           oldName: renameTarget.oldName,
           newName: newName
         });
+        setBtnLoading(renameBtn, false);
 
         if (result && result.success) {
           showToast(`Renamed "${result.oldName}" → "${result.newName}"`, "success");

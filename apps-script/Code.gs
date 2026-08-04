@@ -87,6 +87,11 @@ function getVaultRoot() {
 // ═══════════════════════════════════════════════
 function doGet(e) {
   try {
+    // Handle file download proxy (GET request with action=downloadFile&fileId=...)
+    if (e && e.parameter && e.parameter.action === "downloadFile") {
+      return handleDownloadFileGet(e.parameter);
+    }
+    
     const result = buildVaultData();
     return ContentService
       .createTextOutput(JSON.stringify(result))
@@ -98,6 +103,29 @@ function doGet(e) {
         stack: error.stack 
       }))
       .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Serve a file directly via GET — bypasses Google Drive link-sharing settings.
+ * Usage: GET ?action=downloadFile&fileId=DRIVE_FILE_ID
+ */
+function handleDownloadFileGet(params) {
+  var fileId = (params.fileId || "").trim();
+  if (!fileId) {
+    return ContentService
+      .createTextOutput("Missing fileId parameter")
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+  
+  try {
+    var file = DriveApp.getFileById(fileId);
+    var blob = file.getBlob();
+    return blob;
+  } catch (err) {
+    return ContentService
+      .createTextOutput("File not found: " + err.toString())
+      .setMimeType(ContentService.MimeType.TEXT);
   }
 }
 
@@ -173,6 +201,7 @@ function buildVaultData() {
     properties: properties,
     shared: shared,
     allFiles: allFiles,
+    bankAccounts: getBankAccounts(rootFolder),
     lastSynced: new Date().toISOString()
   };
 }
@@ -243,6 +272,141 @@ function getFilesInFolder(folder) {
 }
 
 // ═══════════════════════════════════════════════
+// BANK ACCOUNTS — stored as .bank_accounts.json inside each person's folder
+// The leading dot keeps it hidden from the documents list.
+// This way, renaming a person's folder keeps bank data linked automatically.
+// ═══════════════════════════════════════════════
+
+const BANK_FILE_NAME = ".bank_accounts.json";
+
+/**
+ * Read all bank accounts from each person's folder inside People/.
+ * Each person's bank data is stored as .bank_accounts.json in their folder.
+ */
+function getBankAccounts(rootFolder) {
+  var peopleFolder = findFolder(rootFolder, CONFIG.PEOPLE_FOLDER_NAME);
+  if (!peopleFolder) return [];
+  
+  var bankAccounts = [];
+  var personFolders = getSubFolders(peopleFolder);
+  
+  for (var i = 0; i < personFolders.length; i++) {
+    var personFolder = personFolders[i];
+    var files = personFolder.getFilesByName(BANK_FILE_NAME);
+    while (files.hasNext()) {
+      var file = files.next();
+      if (file.isTrashed()) continue;
+      try {
+        var content = file.getBlob().getDataAsString();
+        var data = JSON.parse(content);
+        if (Array.isArray(data.banks)) {
+          // Use folder name as person (authoritative — survives renames)
+          data.person = personFolder.getName();
+          bankAccounts.push(data);
+        }
+      } catch (e) {
+        // Skip malformed JSON files
+        continue;
+      }
+    }
+  }
+  return bankAccounts;
+}
+
+/**
+ * Save bank accounts for a person.
+ * Creates/overwrites .bank_accounts.json inside the person's folder.
+ */
+function handleSaveBankAccounts(params) {
+  var person = (params.person || "").trim();
+  var banksJson = (params.banks || "").trim();
+  var email = (params.email || "").trim();
+  var phone = (params.phone || "").trim();
+  
+  if (!person || !banksJson) {
+    return { success: false, error: "Missing person name or banks data" };
+  }
+  
+  var root = getVaultRoot();
+  var peopleFolder = findOrCreateFolder(root, CONFIG.PEOPLE_FOLDER_NAME);
+  var personFolder = findOrCreateFolder(peopleFolder, person);
+  
+  // Read existing file to preserve fields we're not updating
+  var existingEmail = email;
+  var existingPhone = phone;
+  var existing = personFolder.getFilesByName(BANK_FILE_NAME);
+  while (existing.hasNext()) {
+    var f = existing.next();
+    if (!f.isTrashed()) {
+      try {
+        var oldContent = f.getBlob().getDataAsString();
+        var oldData = JSON.parse(oldContent);
+        if (!email) existingEmail = oldData.email || "";
+        if (!phone) existingPhone = oldData.phone || "";
+      } catch (e) { /* ignore parse errors */ }
+    }
+    f.setTrashed(true);
+  }
+  
+  // Write new JSON file with email & phone
+  var data = {
+    person: person,
+    email: existingEmail,
+    phone: existingPhone,
+    banks: JSON.parse(banksJson)
+  };
+  var blob = Utilities.newBlob(JSON.stringify(data, null, 2), "application/json", BANK_FILE_NAME);
+  personFolder.createFile(blob);
+  
+  return { success: true, person: person };
+}
+
+/**
+ * Delete bank accounts file for a person.
+ */
+function handleDeleteBankAccounts(params) {
+  var person = (params.person || "").trim();
+  if (!person) return { success: false, error: "Missing person name" };
+  
+  var root = getVaultRoot();
+  var peopleFolder = findFolder(root, CONFIG.PEOPLE_FOLDER_NAME);
+  if (!peopleFolder) return { success: false, error: "People folder not found" };
+  
+  var personFolder = findFolder(peopleFolder, person);
+  if (!personFolder) return { success: false, error: "Person folder '" + person + "' not found" };
+  
+  var existing = personFolder.getFilesByName(BANK_FILE_NAME);
+  var deleted = false;
+  while (existing.hasNext()) {
+    existing.next().setTrashed(true);
+    deleted = true;
+  }
+  
+  return { success: true, person: person, deleted: deleted };
+}
+
+/**
+ * Proxy download — returns the raw file content so it can be 
+ * shared regardless of Google Drive link-sharing settings.
+ */
+function handleDownloadFile(params) {
+  var fileId = (params.fileId || "").trim();
+  if (!fileId) {
+    return { success: false, error: "Missing fileId" };
+  }
+  
+  try {
+    var file = DriveApp.getFileById(fileId);
+    var blob = file.getBlob();
+    return ContentService
+      .createTextOutput(Utilities.base64Encode(blob.getBytes()))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return jsonResponse({ success: false, error: "File not found: " + err.toString() });
+  }
+}
+
+// ═══════════════════════════════════════════════
 // WRITE OPERATIONS — called by POST requests
 // ═══════════════════════════════════════════════
 
@@ -270,6 +434,12 @@ function doPost(e) {
         return jsonResponse(handleUpdateDueDate(e.parameter));
       case "renameFolderByName":
         return jsonResponse(handleRenameFolderByName(e.parameter));
+      case "saveBankAccounts":
+        return jsonResponse(handleSaveBankAccounts(e.parameter));
+      case "deleteBankAccounts":
+        return jsonResponse(handleDeleteBankAccounts(e.parameter));
+      case "downloadFile":
+        return handleDownloadFile(e.parameter);
       default:
         return jsonResponse({ success: false, error: "Unknown action: " + action });
     }
