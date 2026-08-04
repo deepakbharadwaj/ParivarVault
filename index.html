@@ -241,6 +241,11 @@
         background: rgba(59,130,246,0.08);
       }
       .drop-zone i { font-size: 2rem; color: rgba(255,255,255,0.25); margin-bottom: 0.5rem; display: block; }
+
+      /* Doc naming help — expandable */
+      #detail-docs-help .detail-help-full { display: none; }
+      #detail-docs-help.expanded .detail-help-full { display: inline; }
+      #detail-docs-help.expanded .detail-help-short { display: none; }
     </style>
   </head>
   <body class="flex flex-col lg:flex-row h-[100dvh] w-screen selection:bg-blue-500/30 text-sm md:text-base">
@@ -428,6 +433,16 @@
             </div>
           </div>
           
+          <!-- Document naming help -->
+          <div id="detail-docs-help" class="mb-4 p-3 bg-blue-500/5 border border-blue-500/15 rounded-xl text-xs text-gray-400 flex items-start cursor-pointer hover:bg-blue-500/10 transition-colors hidden" onclick="this.classList.toggle('expanded')">
+            <i class="fa-solid fa-circle-info text-blue-400 mr-2 mt-0.5 shrink-0"></i>
+            <div>
+              <span class="text-blue-300 font-medium">How documents are sorted:</span>
+              <span class="detail-help-short"> Include keywords like <code class="text-blue-300 bg-blue-500/10 px-1 rounded">Aadhaar</code>, <code class="text-blue-300 bg-blue-500/10 px-1 rounded">PAN</code>, <code class="text-blue-300 bg-blue-500/10 px-1 rounded">Passport</code>, <code class="text-blue-300 bg-blue-500/10 px-1 rounded">Voter</code>, <code class="text-blue-300 bg-blue-500/10 px-1 rounded">DL</code> in the filename. Tap for details.</span>
+              <span class="detail-help-full hidden">Documents are automatically sorted into categories based on keywords in the filename (case-insensitive). Short keywords like <strong>PAN, RC, DL, PUC, TAX</strong> must appear as separate words (e.g., <code>PAN_Card.pdf</code> not <code>Japan_Visa.pdf</code>). Files without matching keywords go to <strong>Other Documents</strong> below. <a href="README.md" target="_blank" class="text-blue-400 underline">Learn more →</a></span>
+            </div>
+          </div>
+
           <div id="detail-docs-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6"></div>
           
           <!-- Bank Accounts Container -->
@@ -677,6 +692,7 @@
           <button onclick="closeUploadModal()" class="text-gray-400 hover:text-white text-xl">&times;</button>
         </div>
         <div id="upload-target-info" class="text-xs text-gray-400 mb-4 bg-white/5 rounded-lg p-3"></div>
+        <div class="text-[10px] text-gray-500 mb-4 -mt-3 px-1"><i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i> Tip: Include keywords like <strong class="text-gray-400">PAN, Aadhaar, Passport, RC, Insurance</strong> in the filename for auto-categorization.</div>
         <div id="upload-drop-zone" class="drop-zone mb-4" onclick="document.getElementById('upload-file-input').click()">
           <i class="fa-solid fa-cloud-arrow-up"></i>
           <p class="text-sm text-gray-300"><span data-i18n="modal.dropHint">Click or drag & drop a file here</span></p>
@@ -1385,18 +1401,36 @@
         appState.renewals.sort((a, b) => a.daysLeft - b.daysLeft);
       }
 
+      function matchesKeyword(fileName, keyword) {
+        const lower = fileName.toLowerCase();
+        const kw = keyword.toLowerCase();
+        // For short keywords (3 chars or less), use word-boundary matching
+        // to avoid false positives like "pan" matching "japan", "company", etc.
+        if (kw.length <= 3) {
+          // Match as whole word (preceded/followed by boundary, underscore, hyphen, dot, or digit)
+          // Also match common compound forms like "pancard", "pan_card"
+          const boundary = '(^|[\\s_\\-\\.\\d])';
+          const endBoundary = '([\\s_\\-\\.\\d]|card|$)';
+          return new RegExp(boundary + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + endBoundary, 'i').test(fileName);
+        }
+        return lower.includes(kw);
+      }
+
       function getDocumentFormat(files, typeDef) {
         const keywords = [typeDef.id, ...(typeDef.alt || [])];
-        const matchedFiles = files.filter(file => keywords.some(kw => file.name.toLowerCase().includes(kw.toLowerCase())));
-        const result = { found: false, pdf: null, img: null };
+        const matchedFiles = files.filter(file => keywords.some(kw => matchesKeyword(file.name, kw)));
+        const result = { found: false, pdfs: [], imgs: [], pdf: null, img: null };
         matchedFiles.forEach(file => {
           result.found = true;
           const nameLower = file.name.toLowerCase();
           const isPdf = file.mimeType.includes("pdf") || nameLower.endsWith(".pdf");
           const isImg = file.mimeType.includes("image") || nameLower.match(/\.(jpg|jpeg|png|gif|webp)$/);
-          if (isPdf) result.pdf = file;
-          if (isImg) result.img = file;
+          if (isPdf) result.pdfs.push(file);
+          if (isImg) result.imgs.push(file);
         });
+        // Backward-compat: first match for callers that expect single values
+        result.pdf = result.pdfs[0] || null;
+        result.img = result.imgs[0] || null;
         return result;
       }
 
@@ -1550,14 +1584,19 @@
         const matchedFileIds = new Set();
         if (photoFile.img) matchedFileIds.add(photoFile.img.id);
 
+        // Show document naming help
+        document.getElementById("detail-docs-help").classList.remove("hidden");
+        document.getElementById("detail-docs-help").classList.remove("expanded");
+
         const docsGrid = document.getElementById("detail-docs-grid");
         let docsHtml = "";
 
         PERSON_DOC_TYPES.filter(t => !t.isPhoto).forEach((type) => {
           const doc = getDocumentFormat(person.files, type);
           if (!doc.found) return;
-          if (doc.pdf) matchedFileIds.add(doc.pdf.id);
-          if (doc.img) matchedFileIds.add(doc.img.id);
+          // Add ALL matched file IDs (not just the last one)
+          doc.pdfs.forEach(f => matchedFileIds.add(f.id));
+          doc.imgs.forEach(f => matchedFileIds.add(f.id));
 
           docsHtml += `<div class="glass-panel p-4 lg:p-5 rounded-xl flex flex-col justify-between relative group">
             <div class="flex items-center mb-3 lg:mb-4">
@@ -1565,18 +1604,18 @@
               <h4 class="font-medium text-white text-sm lg:text-base">${docTypeName(type)}</h4>
             </div>
             <div class="flex flex-col space-y-2 mt-2">
-              ${doc.pdf ? `<div class="flex space-x-2">
-                <button onclick="previewFile('${doc.pdf.id}', '${person.name} - ${docTypeName(type)} (PDF)')" class="glass-button flex-1 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-regular fa-eye mr-1"></i> ${t("docCards.pdfView")}</button>
-                <button onclick="downloadFile('${doc.pdf.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-solid fa-download"></i></button>
-                <button onclick="shareViaWhatsApp('${docTypeName(type)}', '${doc.pdf.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
-                <button onclick="event.stopPropagation(); confirmDeleteFile('${doc.pdf.id}', '${(docTypeName(type)+' (PDF)').replace(/'/g, "\\'")}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete"><i class="fa-solid fa-trash"></i></button>
-              </div>` : ''}
-              ${doc.img ? `<div class="flex space-x-2">
-                <button onclick="previewFile('${doc.img.id}', '${person.name} - ${docTypeName(type)} (Image)')" class="glass-button flex-1 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-regular fa-image mr-1"></i> ${t("docCards.imgView")}</button>
-                <button onclick="downloadFile('${doc.img.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-solid fa-download"></i></button>
-                <button onclick="shareViaWhatsApp('${docTypeName(type)}', '${doc.img.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
-                <button onclick="event.stopPropagation(); confirmDeleteFile('${doc.img.id}', '${(docTypeName(type)+' (Image)').replace(/'/g, "\\'")}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete"><i class="fa-solid fa-trash"></i></button>
-              </div>` : ''}
+              ${doc.pdfs.map(pdf => `<div class="flex space-x-2">
+                <button onclick="previewFile('${pdf.id}', '${person.name} - ${docTypeName(type)} (PDF)')" class="glass-button flex-1 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-regular fa-eye mr-1"></i> ${t("docCards.pdfView")}</button>
+                <button onclick="downloadFile('${pdf.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-solid fa-download"></i></button>
+                <button onclick="shareViaWhatsApp('${docTypeName(type)}', '${pdf.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+                <button onclick="event.stopPropagation(); confirmDeleteFile('${pdf.id}', '${(docTypeName(type)+' (PDF)').replace(/'/g, "\\'")}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              </div>`).join('')}
+              ${doc.imgs.map(img => `<div class="flex space-x-2">
+                <button onclick="previewFile('${img.id}', '${person.name} - ${docTypeName(type)} (Image)')" class="glass-button flex-1 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-regular fa-image mr-1"></i> ${t("docCards.imgView")}</button>
+                <button onclick="downloadFile('${img.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center"><i class="fa-solid fa-download"></i></button>
+                <button onclick="shareViaWhatsApp('${docTypeName(type)}', '${img.id}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-green-400 hover:text-green-300" title="${t("share.title")}"><i class="fa-brands fa-whatsapp"></i></button>
+                <button onclick="event.stopPropagation(); confirmDeleteFile('${img.id}', '${(docTypeName(type)+' (Image)').replace(/'/g, "\\'")}')" class="glass-button w-10 py-2 text-xs rounded-lg flex justify-center items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              </div>`).join('')}
             </div>
           </div>`;
         });
