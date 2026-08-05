@@ -159,7 +159,7 @@
         z-index: 99999;
         background: rgba(15, 23, 42, 0.95);
         color: #f1f5f9;
-        font-size: 0.7rem;
+        font-size: 0.8rem;
         padding: 0.35rem 0.65rem;
         border-radius: 0.4rem;
         border: 1px solid rgba(255,255,255,0.15);
@@ -195,7 +195,7 @@
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255,255,255,0.1);
-        font-size: 0.8rem;
+        font-size: 0.9rem;
         min-width: 260px;
         max-width: 380px;
         box-shadow: 0 8px 32px rgba(0,0,0,0.4);
@@ -245,7 +245,7 @@
         border-radius: 0.75rem;
         padding: 0.65rem 1rem;
         color: #f8fafc;
-        font-size: 0.875rem;
+        font-size: 1rem;
         outline: none;
         transition: border-color 0.2s;
       }
@@ -274,7 +274,7 @@
       #detail-docs-help.expanded .detail-help-short { display: none; }
     </style>
   </head>
-  <body class="flex flex-col lg:flex-row h-[100dvh] w-screen selection:bg-blue-500/30 text-sm md:text-base">
+  <body class="flex flex-col lg:flex-row h-[100dvh] w-screen selection:bg-blue-500/30 text-base md:text-lg">
     
     <div id="loading-state" class="fixed inset-0 flex flex-col items-center justify-center bg-[#0f172a] z-[999] transition-opacity duration-300">
       <div class="loader mb-6"></div>
@@ -299,36 +299,36 @@
         <nav class="flex flex-row lg:flex-col w-full p-2 lg:p-4 space-x-1 lg:space-x-0 lg:space-y-2 justify-around lg:justify-start min-w-max lg:min-w-0">
           <button onclick="navigate('home')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="home">
             <i class="fa-solid fa-chart-pie text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
-            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.dashboard">Dashboard</span>
+            <span class="text-[11px] lg:text-base lg:ml-3" data-i18n="nav.dashboard">Dashboard</span>
           </button>
           <button onclick="navigate('members')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="members">
             <i class="fa-solid fa-users text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
-            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.members">Members</span>
+            <span class="text-[11px] lg:text-base lg:ml-3" data-i18n="nav.members">Members</span>
           </button>
           <button onclick="navigate('vehicles')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="vehicles">
             <i class="fa-solid fa-car text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
-            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.vehicles">Vehicles</span>
+            <span class="text-[11px] lg:text-base lg:ml-3" data-i18n="nav.vehicles">Vehicles</span>
           </button>
           <button onclick="navigate('properties')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="properties">
             <i class="fa-solid fa-house text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
-            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.properties">Properties</span>
+            <span class="text-[11px] lg:text-base lg:ml-3" data-i18n="nav.properties">Properties</span>
           </button>
           <button onclick="navigate('renewals')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all relative" data-target="renewals">
             <i class="fa-solid fa-calendar-check text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
-            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.renewals">Renewals</span>
+            <span class="text-[11px] lg:text-base lg:ml-3" data-i18n="nav.renewals">Renewals</span>
             <div id="nav-renewal-badge" class="absolute top-1 lg:top-3 right-2 lg:right-3 w-2 h-2 rounded-full bg-red-500 hidden pulse-alert"></div>
           </button>
           <button onclick="navigate('shared')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="shared">
             <i class="fa-solid fa-folder-open text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
-            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.shared">Shared</span>
+            <span class="text-[11px] lg:text-base lg:ml-3" data-i18n="nav.shared">Shared</span>
           </button>
           <button onclick="navigate('medical')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="medical">
             <i class="fa-solid fa-heart-pulse text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
-            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.medical">Medical</span>
+            <span class="text-[11px] lg:text-base lg:ml-3" data-i18n="nav.medical">Medical</span>
           </button>
           <button onclick="navigate('utilities')" class="nav-btn flex-1 lg:w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start p-2 lg:p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all" data-target="utilities">
             <i class="fa-solid fa-bolt text-lg lg:w-6 text-center mb-1 lg:mb-0"></i>
-            <span class="text-[9px] lg:text-base lg:ml-3" data-i18n="nav.utilities">Utilities</span>
+            <span class="text-[11px] lg:text-base lg:ml-3" data-i18n="nav.utilities">Utilities</span>
           </button>
         </nav>
       </div>
@@ -383,7 +383,7 @@
           <!-- ═══ MAIN DASHBOARD GRID ═══ -->
           <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
 
-            <!-- Column 1: Needs Attention + Assets -->
+            <!-- Column 1: Needs Attention + Upcoming -->
             <div class="space-y-6 lg:space-y-8">
 
               <!-- Needs Attention -->
@@ -398,34 +398,9 @@
                 <div class="flex items-center space-x-3">
                   <div class="w-9 h-9 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 shrink-0"><i class="fa-solid fa-circle-check"></i></div>
                   <div>
-                    <h3 class="text-sm font-medium text-green-300">All Clear</h3>
-                    <p class="text-[10px] text-gray-400">No urgent items — everything looks good.</p>
+                    <h3 class="text-lg font-medium text-green-300">All Clear</h3>
+                    <p class="text-sm text-gray-400">No urgent items — everything looks good.</p>
                   </div>
-                </div>
-              </div>
-
-              <!-- Assets Section -->
-              <div id="dash-assets-section" class="hidden">
-                <div class="glass-panel p-4 lg:p-5 rounded-2xl">
-                  <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-sm lg:text-base font-medium text-white/80"><i class="fa-solid fa-building-columns text-emerald-400 mr-2"></i>Assets</h2>
-                  </div>
-                  <div id="dash-assets-list" class="space-y-2"></div>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- Column 2: Family + Upcoming Timeline -->
-            <div class="space-y-6 lg:space-y-8">
-
-              <!-- Family Section -->
-              <div id="dash-family-section" class="hidden">
-                <div class="glass-panel p-4 lg:p-5 rounded-2xl">
-                  <div class="flex justify-between items-center mb-3">
-                    <h2 class="text-sm lg:text-base font-medium text-white/80"><i class="fa-solid fa-users text-blue-400 mr-2"></i>Family</h2>
-                  </div>
-                  <div id="dash-family-list" class="space-y-1"></div>
                 </div>
               </div>
 
@@ -433,9 +408,9 @@
               <div id="dash-upcoming-section" class="hidden">
                 <div class="glass-panel p-4 lg:p-5 rounded-2xl">
                   <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-sm lg:text-base font-medium text-white/80"><i class="fa-solid fa-calendar text-purple-400 mr-2"></i>Upcoming</h2>
+                    <h2 class="text-lg lg:text-xl font-medium text-white/80"><i class="fa-solid fa-calendar text-purple-400 mr-2"></i>Upcoming</h2>
                     <div class="flex items-center space-x-1">
-                      <select id="dash-timeline-filter" onchange="renderDashboard()" class="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[10px] lg:text-xs text-gray-300 focus:outline-none">
+                      <select id="dash-timeline-filter" onchange="renderDashboard()" class="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs lg:text-sm text-gray-300 focus:outline-none">
                         <option value="all">All</option>
                         <option value="bills">Bills</option>
                         <option value="documents">Documents</option>
@@ -445,7 +420,32 @@
                     </div>
                   </div>
                   <div id="dash-timeline-list" class="space-y-1.5"></div>
-                  <button id="dash-timeline-viewall" onclick="navigate('renewals')" class="hidden mt-3 w-full text-xs text-blue-400 hover:text-blue-300 py-1.5 rounded-lg glass-button text-center">View all upcoming events</button>
+                  <button id="dash-timeline-viewall" onclick="navigate('renewals')" class="hidden mt-3 w-full text-base text-blue-400 hover:text-blue-300 py-1.5 rounded-lg glass-button text-center">View all upcoming events</button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Column 2: Family + Assets -->
+            <div class="space-y-6 lg:space-y-8">
+
+              <!-- Family Section -->
+              <div id="dash-family-section" class="hidden">
+                <div class="glass-panel p-4 lg:p-5 rounded-2xl">
+                  <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-lg lg:text-xl font-medium text-white/80"><i class="fa-solid fa-users text-blue-400 mr-2"></i>Family</h2>
+                  </div>
+                  <div id="dash-family-list" class="space-y-1"></div>
+                </div>
+              </div>
+
+              <!-- Assets Section -->
+              <div id="dash-assets-section" class="hidden">
+                <div class="glass-panel p-4 lg:p-5 rounded-2xl">
+                  <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg lg:text-xl font-medium text-white/80"><i class="fa-solid fa-building-columns text-emerald-400 mr-2"></i>Assets</h2>
+                  </div>
+                  <div id="dash-assets-list" class="space-y-2"></div>
                 </div>
               </div>
 
@@ -458,7 +458,7 @@
               <div id="dash-recent-section" class="hidden">
                 <div class="glass-panel p-4 lg:p-5 rounded-2xl">
                   <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-sm lg:text-base font-medium text-white/80"><i class="fa-solid fa-clock-rotate-left text-amber-400 mr-2"></i>Recent Documents</h2>
+                    <h2 class="text-lg lg:text-xl font-medium text-white/80"><i class="fa-solid fa-clock-rotate-left text-amber-400 mr-2"></i>Recent Documents</h2>
                   </div>
                   <div id="dash-recent-list" class="space-y-2"></div>
                 </div>
@@ -466,24 +466,24 @@
 
               <!-- Quick Add -->
               <div class="glass-panel p-4 lg:p-5 rounded-2xl">
-                <h2 class="text-sm lg:text-base font-medium text-white/80 mb-4"><i class="fa-solid fa-plus-circle text-green-400 mr-2"></i>Quick Add</h2>
+                <h2 class="text-lg lg:text-xl font-medium text-white/80 mb-4"><i class="fa-solid fa-plus-circle text-green-400 mr-2"></i>Quick Add</h2>
                 <div class="grid grid-cols-2 gap-2">
-                  <button onclick="openUploadModal('PEOPLE', (appState.people[0]||{}).name||'')" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-blue-400 hover:text-blue-300" title="Upload a document">
+                  <button onclick="openUploadModal('PEOPLE', (appState.people[0]||{}).name||'')" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-sm lg:text-base flex items-center justify-center text-blue-400 hover:text-blue-300" title="Upload a document">
                     <i class="fa-solid fa-file-arrow-up mr-1 lg:mr-1.5"></i> Document
                   </button>
-                  <button onclick="openAddMemberModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-blue-400 hover:text-blue-300">
+                  <button onclick="openAddMemberModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-sm lg:text-base flex items-center justify-center text-blue-400 hover:text-blue-300">
                     <i class="fa-solid fa-user-plus mr-1 lg:mr-1.5"></i> Member
                   </button>
-                  <button onclick="openAddVehicleModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-purple-400 hover:text-purple-300">
+                  <button onclick="openAddVehicleModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-sm lg:text-base flex items-center justify-center text-purple-400 hover:text-purple-300">
                     <i class="fa-solid fa-car-side mr-1 lg:mr-1.5"></i> Vehicle
                   </button>
-                  <button onclick="openAddPropertyModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-emerald-400 hover:text-emerald-300">
+                  <button onclick="openAddPropertyModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-sm lg:text-base flex items-center justify-center text-emerald-400 hover:text-emerald-300">
                     <i class="fa-solid fa-house-circle-plus mr-1 lg:mr-1.5"></i> Property
                   </button>
-                  <button onclick="if(medicalSelectedPerson||appState.people[0]){ medicalSelectedPerson=(appState.people[0]||{}).name; navigate('medical'); setTimeout(()=>showAddVitalsForm(),300); }" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-rose-400 hover:text-rose-300">
+                  <button onclick="if(medicalSelectedPerson||appState.people[0]){ medicalSelectedPerson=(appState.people[0]||{}).name; navigate('medical'); setTimeout(()=>showAddVitalsForm(),300); }" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-sm lg:text-base flex items-center justify-center text-rose-400 hover:text-rose-300">
                     <i class="fa-solid fa-heart-pulse mr-1 lg:mr-1.5"></i> Medical
                   </button>
-                  <button onclick="openUtilityModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-amber-400 hover:text-amber-300">
+                  <button onclick="openUtilityModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-sm lg:text-base flex items-center justify-center text-amber-400 hover:text-amber-300">
                     <i class="fa-solid fa-bolt mr-1 lg:mr-1.5"></i> Bill
                   </button>
                 </div>
@@ -498,7 +498,7 @@
         </div>
 
         <div id="view-member-detail" class="view-section hidden">
-          <button onclick="navigate('members')" class="text-gray-400 hover:text-white mb-4 lg:mb-6 flex items-center transition-colors text-sm lg:text-base">
+          <button onclick="navigate('members')" class="text-gray-400 hover:text-white mb-4 lg:mb-6 flex items-center transition-colors text-lg lg:text-xl">
             <i class="fa-solid fa-arrow-left mr-2"></i> <span data-i18n="detail.back">Back to Members</span>
           </button>
           
@@ -612,7 +612,7 @@
           
           <!-- Medical Detail for selected member -->
           <div id="medical-detail" class="hidden">
-            <button onclick="closeMedicalDetail()" class="text-gray-400 hover:text-white mb-4 lg:mb-6 flex items-center transition-colors text-sm lg:text-base">
+            <button onclick="closeMedicalDetail()" class="text-gray-400 hover:text-white mb-4 lg:mb-6 flex items-center transition-colors text-lg lg:text-xl">
               <i class="fa-solid fa-arrow-left mr-2"></i> <span data-i18n="medical.back">Back to Health Records</span>
             </button>
 
@@ -822,7 +822,7 @@
         <div id="view-setup" class="view-section hidden flex-col items-center justify-center h-full text-center max-w-2xl mx-auto">
           <i class="fa-solid fa-gear text-5xl lg:text-6xl text-blue-400 mb-6"></i>
           <h2 class="text-xl lg:text-2xl font-semibold mb-4" data-i18n="setup.title">Configuration Required</h2>
-          <p class="text-sm lg:text-base text-gray-400 mb-2 px-6" data-i18n="setup.subtitle">The application could not find <code>vault-config.json</code> in the root directory.</p>
+          <p class="text-lg lg:text-xl text-gray-400 mb-2 px-6" data-i18n="setup.subtitle">The application could not find <code>vault-config.json</code> in the root directory.</p>
           <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 text-left max-w-md mx-auto">
             <p class="text-xs text-amber-300 mb-2"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Common fix:</strong></p>
             <p class="text-xs text-gray-300 mb-1">Did you double-click <code>index.html</code> to open it? Browsers block local file access. Instead, serve the folder:</p>
@@ -2323,9 +2323,9 @@
         function daysLabel(n) { return n === 1 ? "1 DAY" : n + " DAYS"; }
 
         header.innerHTML = `
-          <i class="fa-solid fa-triangle-exclamation ${criticalCount > 0 ? 'text-red-400' : 'text-amber-400'} mr-2 text-sm"></i>
-          <span class="text-sm font-medium text-white/90">Needs Attention</span>
-          <span class="text-[10px] text-gray-500 ml-1.5">· ${items.length}</span>
+          <i class="fa-solid fa-triangle-exclamation ${criticalCount > 0 ? 'text-red-400' : 'text-amber-400'} mr-2 text-base"></i>
+          <span class="text-base font-medium text-white/90">Needs Attention</span>
+          <span class="text-xs text-gray-500 ml-1.5">· ${items.length}</span>
           ${headerBadge}
         `;
 
@@ -2333,21 +2333,21 @@
           const isCritical = item.severity === "critical";
           const borderClass = isCritical ? "border-red-500/30 bg-red-500/5" : "border-amber-500/20 bg-amber-500/5";
           const urgencyLabel = isCritical
-            ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 uppercase tracking-wider">OVERDUE</span>`
-            : `<span class="text-[9px] font-medium px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">${daysLabel(item.urgency)}</span>`;
+            ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 uppercase tracking-wider">OVERDUE</span>`
+            : `<span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">${daysLabel(item.urgency)}</span>`;
 
           return `<div class="glass-card p-2.5 rounded-lg border ${borderClass} flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors">
             <div class="flex items-center min-w-0 flex-1">
-              <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isCritical ? 'bg-red-500/10' : 'bg-amber-500/10'} ${item.iconColor}"><i class="fa-solid ${item.icon} text-xs"></i></div>
+              <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isCritical ? 'bg-red-500/10' : 'bg-amber-500/10'} ${item.iconColor}"><i class="fa-solid ${item.icon} text-sm"></i></div>
               <div class="ml-2.5 min-w-0 flex-1">
                 <div class="flex items-center flex-wrap gap-1">
-                  <span class="text-[11px] font-medium text-white truncate">${item.label}</span>
+                  <span class="text-sm font-medium text-white truncate">${item.label}</span>
                   ${urgencyLabel}
                 </div>
-                <p class="text-[9px] text-gray-400 mt-0.5 truncate">${item.sub}</p>
+                <p class="text-[10px] text-gray-400 mt-0.5 truncate">${item.sub}</p>
               </div>
             </div>
-            <i class="fa-solid fa-chevron-right text-gray-500 ml-1.5 shrink-0 text-[10px]"></i>
+            <i class="fa-solid fa-chevron-right text-gray-500 ml-1.5 shrink-0 text-xs"></i>
           </div>`;
         }).join("");
 
@@ -2446,9 +2446,9 @@
 
           return `<div class="glass-card p-3 lg:p-4 rounded-2xl flex items-center justify-between ${clickable}" ${onclick}>
             <div>
-              <p class="text-gray-400 text-[10px] lg:text-xs mb-0.5">${m.label}</p>
-              <h3 class="text-xl lg:text-2xl font-semibold">${m.value}</h3>
-              <p class="text-[9px] lg:text-[10px] text-gray-500 mt-0.5">${m.sub}</p>
+              <p class="text-gray-400 text-xs lg:text-sm mb-0.5">${m.label}</p>
+              <h3 class="text-2xl lg:text-3xl font-semibold">${m.value}</h3>
+              <p class="text-[10px] lg:text-xs text-gray-500 mt-0.5">${m.sub}</p>
             </div>
             <div class="h-9 w-9 lg:h-10 lg:w-10 rounded-full ${colorMap[m.color] || 'bg-gray-500/20 text-gray-400'} flex items-center justify-center shrink-0"><i class="fa-solid ${m.icon}"></i></div>
           </div>`;
@@ -2566,7 +2566,7 @@
           if (daysUntil <= 7) {
             nodeRing = "border-amber-500/60 bg-amber-500/15";
             nodeDot = "bg-amber-400";
-            urgencyBadge = `<span class="ml-2 text-[9px] font-medium text-amber-400 px-1.5 py-0.5 rounded-full bg-amber-400/10">${daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : daysUntil + "d"}</span>`;
+            urgencyBadge = `<span class="ml-2 text-[10px] font-medium text-amber-400 px-1.5 py-0.5 rounded-full bg-amber-400/10">${daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : daysUntil + "d"}</span>`;
           } else if (daysUntil <= 30) {
             nodeRing = "border-blue-500/40 bg-blue-500/10";
             nodeDot = "bg-blue-400";
@@ -2591,17 +2591,17 @@
             </div>
             <div class="flex-1 min-w-0 pl-1">
               <div class="flex items-center gap-2">
-                <span class="text-[11px] font-semibold text-white/70 tabular-nums tracking-tight">${dateNum}</span>
-                <span class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">${monthLabel}</span>
+                <span class="text-sm font-semibold text-white/70 tabular-nums tracking-tight">${dateNum}</span>
+                <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">${monthLabel}</span>
                 ${urgencyBadge}
               </div>
               <div class="flex items-center gap-2 mt-1">
                 <div class="w-6 h-6 rounded-md ${iconBg} flex items-center justify-center shrink-0">
-                  <i class="fa-solid ${e.icon} text-[10px]"></i>
+                  <i class="fa-solid ${e.icon} text-xs"></i>
                 </div>
-                <span class="text-xs text-white/85 truncate font-medium">${e.label}</span>
+                <span class="text-sm text-white/85 truncate font-medium">${e.label}</span>
               </div>
-              ${e.sub ? `<div class="text-[10px] text-gray-500 mt-0.5 ml-8 truncate">${e.sub}</div>` : ""}
+              ${e.sub ? `<div class="text-xs text-gray-500 mt-0.5 ml-8 truncate">${e.sub}</div>` : ""}
             </div>
           `;
           list.appendChild(row);
@@ -2626,12 +2626,12 @@
 
         list.innerHTML = display.map(person => {
           const photoFile = getDocumentFormat(person.files, PERSON_DOC_TYPES.find(t => t.isPhoto));
-          const profileHtml = generateProfileHTML(photoFile, "w-8 h-8 rounded-full", "text-[10px]");
+          const profileHtml = generateProfileHTML(photoFile, "w-8 h-8 rounded-full", "text-xs");
 
           return `<div class="flex items-center p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group" onclick="openMemberDetail('${person.name.replace(/'/g, "\\'")}')">
             ${profileHtml}
-            <span class="ml-3 text-sm text-white/80 group-hover:text-white transition-colors truncate">${person.name}</span>
-            <i class="fa-solid fa-chevron-right text-gray-600 text-[10px] ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            <span class="ml-3 text-base text-white/80 group-hover:text-white transition-colors truncate">${person.name}</span>
+            <i class="fa-solid fa-chevron-right text-gray-600 text-xs ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"></i>
           </div>`;
         }).join("");
       }
@@ -2667,9 +2667,9 @@
           if (assetRenewals.length > 0) {
             const nextR = assetRenewals[0];
             if (nextR.status === "expired") {
-              renewalBadge = `<span class="text-[9px] text-red-400 ml-1">· ${nextR.cleanName.substring(0, 18)} expired</span>`;
+              renewalBadge = `<span class="text-[10px] text-red-400 ml-1">· ${nextR.cleanName.substring(0, 18)} expired</span>`;
             } else {
-              renewalBadge = `<span class="text-[9px] ${nextR.daysLeft <= 30 ? 'text-amber-400' : 'text-gray-500'} ml-1">· ${nextR.cleanName.substring(0, 18)} due ${nextR.daysLeft}d</span>`;
+              renewalBadge = `<span class="text-[10px] ${nextR.daysLeft <= 30 ? 'text-amber-400' : 'text-gray-500'} ml-1">· ${nextR.cleanName.substring(0, 18)} due ${nextR.daysLeft}d</span>`;
             }
             statusLine = renewalBadge ? statusLine : statusLine;
           } else if (docCount > 0) {
@@ -2681,14 +2681,14 @@
           return `<div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" onclick="navigate('${asset._navPage}')">
             <div class="flex items-center min-w-0 flex-1">
               <div class="w-8 h-8 rounded-lg ${asset._type === 'vehicle' ? 'bg-purple-500/10' : 'bg-emerald-500/10'} flex items-center justify-center shrink-0">
-                <i class="fa-solid ${asset._icon} ${asset._iconColor} text-xs"></i>
+                <i class="fa-solid ${asset._icon} ${asset._iconColor} text-sm"></i>
               </div>
               <div class="ml-3 min-w-0">
-                <span class="text-xs lg:text-sm font-medium text-white/90 truncate block">${displayName}</span>
-                <span class="text-[10px] text-gray-400">${statusLine}${renewalBadge}</span>
+                <span class="text-sm lg:text-base font-medium text-white/90 truncate block">${displayName}</span>
+                <span class="text-xs text-gray-400">${statusLine}${renewalBadge}</span>
               </div>
             </div>
-            <i class="fa-solid fa-chevron-right text-gray-600 text-xs ml-2 shrink-0"></i>
+            <i class="fa-solid fa-chevron-right text-gray-600 text-sm ml-2 shrink-0"></i>
           </div>`;
         }).join("");
       }
@@ -2713,10 +2713,10 @@
 
           return `<div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" onclick="previewFile('${doc.id}', '${doc.name.replace(/'/g, "\\'")}')">
             <div class="flex items-center min-w-0 flex-1">
-              <i class="fa-solid ${icon} w-5 text-center shrink-0 text-xs"></i>
+              <i class="fa-solid ${icon} w-5 text-center shrink-0 text-sm"></i>
               <div class="ml-2.5 min-w-0">
-                <span class="text-xs lg:text-sm text-white/90 truncate block">${displayName}</span>
-                <span class="text-[9px] text-gray-500">${doc._source || ""}</span>
+                <span class="text-sm lg:text-base text-white/90 truncate block">${displayName}</span>
+                <span class="text-[10px] text-gray-500">${doc._source || ""}</span>
               </div>
             </div>
             <button onclick="event.stopPropagation(); previewFile('${doc.id}', '${doc.name.replace(/'/g, "\\'")}')" class="text-[10px] text-blue-400 hover:text-blue-300 px-2 py-1 rounded glass-button shrink-0 ml-2">View</button>
@@ -2798,7 +2798,7 @@
           docsHtml += `<div class="glass-panel p-4 lg:p-5 rounded-xl flex flex-col justify-between relative group">
             <div class="flex items-center mb-3 lg:mb-4">
               <i class="fa-solid fa-file-shield text-blue-400 mr-3 text-lg"></i>
-              <h4 class="font-medium text-white text-sm lg:text-base">${docTypeName(type)}</h4>
+              <h4 class="font-medium text-white text-lg lg:text-xl">${docTypeName(type)}</h4>
             </div>
             <div class="flex flex-col space-y-2 mt-2">
               ${doc.pdfs.map(pdf => `<div class="flex space-x-2">
@@ -3024,7 +3024,7 @@
             <div class="flex items-center overflow-hidden mb-3 sm:mb-0">
               <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-black/30 ${iconClass}"><i class="fa-solid ${iconBadge} text-lg"></i></div>
               <div class="ml-4 truncate">
-                <h4 class="font-medium text-white text-sm lg:text-base truncate">${r.cleanName}</h4>
+                <h4 class="font-medium text-white text-lg lg:text-xl truncate">${r.cleanName}</h4>
                 <p class="text-xs text-gray-400 mt-0.5"><i class="fa-regular fa-folder text-gray-500 mr-1"></i> ${r.parentName || t("renewals.shared")} • <span class="font-mono text-[10px] text-gray-500 ml-1">${t("renewals.due")} ${r.dateString}</span></p>
               </div>
             </div>
@@ -3832,7 +3832,7 @@
               <i class="fa-solid ${ti[0]} ${ti[1]} text-lg lg:text-xl shrink-0"></i>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center flex-wrap gap-2">
-                  <h4 class="font-medium text-white text-sm lg:text-base truncate">${bill.name}</h4>
+                  <h4 class="font-medium text-white text-lg lg:text-xl truncate">${bill.name}</h4>
                   <span class="text-[10px] px-1.5 py-0.5 rounded-full ${statusClass}">${statusLabel}</span>
                 </div>
                 <div class="flex items-center gap-3 mt-0.5 text-[10px] lg:text-xs text-gray-400">
