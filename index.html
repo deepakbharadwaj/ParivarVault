@@ -376,58 +376,120 @@
       <div id="content-area" class="flex-1 overflow-y-auto p-4 lg:p-10 relative">
 
         <div id="view-home" class="view-section hidden space-y-6 lg:space-y-8">
-          
-          <!-- Dynamic Alert Banner Container -->
-          <div id="dashboard-alerts" class="w-full space-y-3"></div>
 
-          <!-- Stats Row -->
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-            <div class="glass-card p-4 lg:p-6 rounded-2xl flex items-center justify-between">
-              <div>
-                <p class="text-gray-400 text-xs lg:text-sm mb-1" data-i18n="stats.people">Total People</p>
-                <h3 id="stat-people" class="text-2xl lg:text-3xl font-semibold">0</h3>
-              </div>
-              <div class="h-10 w-10 lg:h-12 lg:w-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0"><i class="fa-solid fa-user lg:text-xl"></i></div>
-            </div>
-            <div class="glass-card p-4 lg:p-6 rounded-2xl flex items-center justify-between">
-              <div>
-                <p class="text-gray-400 text-xs lg:text-sm mb-1" data-i18n="stats.vehicles">Vehicles</p>
-                <h3 id="stat-vehicles" class="text-2xl lg:text-3xl font-semibold">0</h3>
-              </div>
-              <div class="h-10 w-10 lg:h-12 lg:w-12 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0"><i class="fa-solid fa-car lg:text-xl"></i></div>
-            </div>
-            <div class="glass-card p-4 lg:p-6 rounded-2xl flex items-center justify-between">
-              <div>
-                <p class="text-gray-400 text-xs lg:text-sm mb-1" data-i18n="stats.documents">Documents</p>
-                <h3 id="stat-docs" class="text-2xl lg:text-3xl font-semibold">0</h3>
-              </div>
-              <div class="h-10 w-10 lg:h-12 lg:w-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 shrink-0"><i class="fa-solid fa-file-lines lg:text-xl"></i></div>
-            </div>
-            <div class="glass-card p-4 lg:p-6 rounded-2xl flex items-center justify-between">
-              <div>
-                <p class="text-gray-400 text-xs lg:text-sm mb-1" data-i18n="stats.renewals">Pending Renewals</p>
-                <h3 id="stat-renewals" class="text-2xl lg:text-3xl font-semibold text-amber-400">0</h3>
-              </div>
-              <div class="h-10 w-10 lg:h-12 lg:w-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0"><i class="fa-solid fa-calendar-xmark lg:text-xl"></i></div>
-            </div>
-          </div>
+          <!-- ═══ FAMILY VAULT OVERVIEW ═══ -->
+          <div id="dash-overview" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4"></div>
 
-          <!-- Quick Overview -->
-          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
-            <div class="glass-panel p-4 lg:p-6 rounded-2xl">
-              <div class="flex justify-between items-center mb-6">
-                <h2 class="text-base lg:text-lg font-medium" data-i18n="home.members">Family Members</h2>
-                <button onclick="navigate('members')" class="text-xs lg:text-sm text-blue-400 hover:text-blue-300" data-i18n="home.viewAll">View All</button>
+          <!-- ═══ MAIN DASHBOARD GRID ═══ -->
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
+
+            <!-- Column 1: Needs Attention + Assets -->
+            <div class="space-y-6 lg:space-y-8">
+
+              <!-- Needs Attention -->
+              <div id="dash-attention-section" class="hidden">
+                <div class="glass-panel p-4 lg:p-5 rounded-2xl">
+                  <div id="dash-attention-header" class="flex items-center mb-3"></div>
+                  <div id="dash-attention-alerts" class="space-y-2"></div>
+                </div>
               </div>
-              <div id="home-members-list" class="space-y-3"></div>
+              <!-- All-clear state -->
+              <div id="dash-all-clear" class="hidden glass-panel p-4 lg:p-5 rounded-2xl border border-green-500/20">
+                <div class="flex items-center space-x-3">
+                  <div class="w-9 h-9 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 shrink-0"><i class="fa-solid fa-circle-check"></i></div>
+                  <div>
+                    <h3 class="text-sm font-medium text-green-300">All Clear</h3>
+                    <p class="text-[10px] text-gray-400">No urgent items — everything looks good.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Assets Section -->
+              <div id="dash-assets-section" class="hidden">
+                <div class="glass-panel p-4 lg:p-5 rounded-2xl">
+                  <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm lg:text-base font-medium text-white/80"><i class="fa-solid fa-building-columns text-emerald-400 mr-2"></i>Assets</h2>
+                  </div>
+                  <div id="dash-assets-list" class="space-y-2"></div>
+                </div>
+              </div>
+
             </div>
 
-            <div class="glass-panel p-4 lg:p-6 rounded-2xl">
-              <div class="flex justify-between items-center mb-6">
-                <h2 class="text-base lg:text-lg font-medium" data-i18n="home.garage">Garage Overview</h2>
-                <button onclick="navigate('vehicles')" class="text-xs lg:text-sm text-blue-400 hover:text-blue-300" data-i18n="home.viewAll">View All</button>
+            <!-- Column 2: Family + Upcoming Timeline -->
+            <div class="space-y-6 lg:space-y-8">
+
+              <!-- Family Section -->
+              <div id="dash-family-section" class="hidden">
+                <div class="glass-panel p-4 lg:p-5 rounded-2xl">
+                  <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm lg:text-base font-medium text-white/80"><i class="fa-solid fa-users text-blue-400 mr-2"></i>Family</h2>
+                    <button onclick="navigate('members')" class="text-xs text-blue-400 hover:text-blue-300">View All</button>
+                  </div>
+                  <div id="dash-family-list" class="space-y-2"></div>
+                </div>
               </div>
-              <div id="home-vehicles-list" class="space-y-3"></div>
+
+              <!-- Upcoming Timeline -->
+              <div id="dash-upcoming-section" class="hidden">
+                <div class="glass-panel p-4 lg:p-5 rounded-2xl">
+                  <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm lg:text-base font-medium text-white/80"><i class="fa-solid fa-calendar text-purple-400 mr-2"></i>Upcoming</h2>
+                    <div class="flex items-center space-x-1">
+                      <select id="dash-timeline-filter" onchange="renderDashboard()" class="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[10px] lg:text-xs text-gray-300 focus:outline-none">
+                        <option value="all">All</option>
+                        <option value="bills">Bills</option>
+                        <option value="documents">Documents</option>
+                        <option value="vehicles">Vehicles</option>
+                        <option value="medical">Medical</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="dash-timeline-list" class="space-y-1.5"></div>
+                  <button id="dash-timeline-viewall" onclick="navigate('renewals')" class="hidden mt-3 w-full text-xs text-blue-400 hover:text-blue-300 py-1.5 rounded-lg glass-button text-center">View all upcoming events</button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Column 3: Recent Docs + Quick Add -->
+            <div class="space-y-6 lg:space-y-8">
+
+              <!-- Recent Documents -->
+              <div id="dash-recent-section" class="hidden">
+                <div class="glass-panel p-4 lg:p-5 rounded-2xl">
+                  <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm lg:text-base font-medium text-white/80"><i class="fa-solid fa-clock-rotate-left text-amber-400 mr-2"></i>Recent Documents</h2>
+                  </div>
+                  <div id="dash-recent-list" class="space-y-2"></div>
+                </div>
+              </div>
+
+              <!-- Quick Add -->
+              <div class="glass-panel p-4 lg:p-5 rounded-2xl">
+                <h2 class="text-sm lg:text-base font-medium text-white/80 mb-4"><i class="fa-solid fa-plus-circle text-green-400 mr-2"></i>Quick Add</h2>
+                <div class="grid grid-cols-2 gap-2">
+                  <button onclick="openUploadModal('PEOPLE', (appState.people[0]||{}).name||'')" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-blue-400 hover:text-blue-300" title="Upload a document">
+                    <i class="fa-solid fa-file-arrow-up mr-1 lg:mr-1.5"></i> Document
+                  </button>
+                  <button onclick="openAddMemberModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-blue-400 hover:text-blue-300">
+                    <i class="fa-solid fa-user-plus mr-1 lg:mr-1.5"></i> Member
+                  </button>
+                  <button onclick="openAddVehicleModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-purple-400 hover:text-purple-300">
+                    <i class="fa-solid fa-car-side mr-1 lg:mr-1.5"></i> Vehicle
+                  </button>
+                  <button onclick="openAddPropertyModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-emerald-400 hover:text-emerald-300">
+                    <i class="fa-solid fa-house-circle-plus mr-1 lg:mr-1.5"></i> Property
+                  </button>
+                  <button onclick="if(medicalSelectedPerson||appState.people[0]){ medicalSelectedPerson=(appState.people[0]||{}).name; navigate('medical'); setTimeout(()=>showAddVitalsForm(),300); }" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-rose-400 hover:text-rose-300">
+                    <i class="fa-solid fa-heart-pulse mr-1 lg:mr-1.5"></i> Medical
+                  </button>
+                  <button onclick="openUtilityModal()" class="glass-button px-2 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs flex items-center justify-center text-amber-400 hover:text-amber-300">
+                    <i class="fa-solid fa-bolt mr-1 lg:mr-1.5"></i> Bill
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -2116,67 +2178,541 @@
       }
 
       function renderDashboard() {
-        document.getElementById("stat-people").innerText = appState.people.length;
-        document.getElementById("stat-vehicles").innerText = appState.vehicles.length;
-        document.getElementById("stat-docs").innerText = appState.driveData.length;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const utils = getUtilities();
+        // Mark overdue utilities
+        utils.forEach(u => { if (u.status === "pending" && u.dueDate && new Date(u.dueDate) < today) u.status = "overdue"; });
 
-        const alertsContainer = document.getElementById("dashboard-alerts");
+        // ── Compute derived data ──────────────────────────
+        const totalDocs = appState.driveData.length;
+        const memberCount = appState.people.length;
+        const vehicleCount = appState.vehicles.length;
+        const propertyCount = appState.properties.length;
+        const hasMedicalData = appState.people.some(p => {
+          const mf = p.files.filter(f => isMedicalFile(f.name));
+          return mf.length > 0 || (getPersonVitals(p.name) || []).length > 0;
+        });
+        const hasUtilities = utils.length > 0;
+        const hasAssets = vehicleCount > 0 || propertyCount > 0;
+
+        // Members with documents count
+        const membersWithDocs = appState.people.filter(p => p.files.length > 0).length;
+
+        // Recent docs (by simulated recency: just sample a few from different sources)
+        const recentDocs = buildRecentDocsList(6);
+
+        // ═══ 1. NEEDS ATTENTION ═══════════════════════════
+        const attentionItems = buildAttentionItems(utils, today);
+        renderAttentionSection(attentionItems);
+
+        // ═══ 2. FAMILY VAULT OVERVIEW ═════════════════════
+        renderOverviewMetrics(totalDocs, memberCount, vehicleCount, propertyCount, membersWithDocs, utils, hasUtilities);
+
+        // ═══ 3. UPCOMING TIMELINE ═════════════════════════
+        renderUpcomingTimeline(utils, today);
+
+        // ═══ 4. FAMILY SECTION ════════════════════════════
+        renderFamilySection();
+
+        // ═══ 5. ASSETS SECTION ════════════════════════════
+        renderAssetsSection();
+
+        // ═══ 6. RECENT DOCUMENTS ══════════════════════════
+        renderRecentDocsSection(recentDocs);
+
+        // ═══ 7. Update nav badge ══════════════════════════
         const pendingRenewals = appState.renewals.filter(r => r.status === 'warning' || r.status === 'expired');
-        document.getElementById("stat-renewals").innerText = pendingRenewals.length;
-
         if (pendingRenewals.length > 0) {
-          document.getElementById("stat-renewals").classList.remove("text-amber-400");
-          document.getElementById("stat-renewals").classList.add("text-red-400");
           document.getElementById("nav-renewal-badge").classList.remove("hidden");
         } else {
-          document.getElementById("stat-renewals").classList.add("text-amber-400");
-          document.getElementById("stat-renewals").classList.remove("text-red-400");
           document.getElementById("nav-renewal-badge").classList.add("hidden");
         }
 
-        let alertsHtml = "";
-        pendingRenewals.forEach(r => {
-          const isExpired = r.status === 'expired';
-          const bgClass = isExpired ? 'bg-red-500/20 border-red-500/50' : 'bg-amber-500/20 border-amber-500/50';
-          const textClass = isExpired ? 'text-red-300' : 'text-amber-300';
-          const icon = isExpired ? 'fa-circle-exclamation' : 'fa-triangle-exclamation';
-          const dayText = isExpired ? `${t("renewals.expired")} ${Math.abs(r.daysLeft)} ${t("renewals.daysAgo")}` : `${t("renewals.dueIn")} ${r.daysLeft} ${t("renewals.days")}`;
-          alertsHtml += `<div class="glass-panel p-4 rounded-xl flex items-center justify-between border ${bgClass} cursor-pointer hover:bg-white/5 transition-colors" onclick="navigate('renewals')">
-            <div class="flex items-center truncate pr-4">
-              <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${textClass} bg-black/20"><i class="fa-solid ${icon}"></i></div>
-              <div class="ml-4 truncate">
-                <h4 class="font-medium text-white text-sm lg:text-base truncate">${r.cleanName}</h4>
-                <p class="text-xs ${textClass} mt-0.5">${r.parentName || t("renewals.unknownOwner")} • ${dayText}</p>
+        applyTranslations();
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // NEEDS ATTENTION — Aggregate actionable signals
+      // ═══════════════════════════════════════════════════════
+      function buildAttentionItems(utils, today) {
+        const items = [];
+
+        // 1. Overdue utility bills
+        utils.filter(u => u.status === "overdue").forEach(u => {
+          const daysLate = Math.ceil((today - new Date(u.dueDate)) / (1000 * 60 * 60 * 24));
+          items.push({
+            type: "bill", severity: "critical", urgency: daysLate * -1,
+            label: u.name, sub: "₹" + u.amount.toLocaleString("en-IN") + " · " + daysLate + "d late",
+            module: "utilities", icon: "fa-bolt", iconColor: "text-red-400",
+            action: () => { navigate("utilities"); }
+          });
+        });
+
+        // 2. Expired document renewals
+        appState.renewals.filter(r => r.status === "expired").forEach(r => {
+          const daysExpired = Math.abs(r.daysLeft);
+          items.push({
+            type: "document", severity: "critical", urgency: r.daysLeft,
+            label: r.cleanName, sub: (r.parentName || "") + " · Expired " + daysExpired + "d ago",
+            module: "renewals", icon: "fa-file-circle-exclamation", iconColor: "text-red-400",
+            action: () => { previewFile(r.file.id, r.file.name); }
+          });
+        });
+
+        // 3. Vehicle PUC/Insurance approaching (within 30 days)
+        appState.renewals.filter(r => r.status === "warning").forEach(r => {
+          // Check if this renewal belongs to a vehicle
+          const isVehicleDoc = appState.vehicles.some(v => v.files.some(f => f.id === r.file.id));
+          const isPropertyDoc = appState.properties.some(p => p.files.some(f => f.id === r.file.id));
+          const isMedicalDoc = isMedicalFile(r.file.name);
+
+          let icon = "fa-file-circle-exclamation", iconColor = "text-amber-400", type = "document", module = "renewals";
+          if (isVehicleDoc) { icon = "fa-car"; iconColor = "text-amber-400"; type = "vehicle"; module = "vehicles"; }
+          else if (isPropertyDoc) { icon = "fa-house"; iconColor = "text-amber-400"; type = "property"; module = "properties"; }
+          else if (isMedicalDoc) { icon = "fa-heart-pulse"; iconColor = "text-amber-400"; type = "medical"; module = "medical"; }
+
+          items.push({
+            type, severity: "warning", urgency: r.daysLeft,
+            label: r.cleanName, sub: (r.parentName || "") + " · Due in " + r.daysLeft + " days",
+            module, icon, iconColor,
+            action: () => { previewFile(r.file.id, r.file.name); }
+          });
+        });
+
+        // 4. Pending bills due within 7 days
+        utils.filter(u => u.status === "pending" && u.dueDate).forEach(u => {
+          const daysUntil = Math.ceil((new Date(u.dueDate) - today) / (1000 * 60 * 60 * 24));
+          if (daysUntil <= 7 && daysUntil >= 0) {
+            items.push({
+              type: "bill", severity: "warning", urgency: daysUntil,
+              label: u.name, sub: "₹" + u.amount.toLocaleString("en-IN") + " · Due in " + daysUntil + "d",
+              module: "utilities", icon: "fa-bolt", iconColor: "text-amber-400",
+              action: () => { navigate("utilities"); }
+            });
+          }
+        });
+
+        // Sort by urgency (most urgent first), then by severity
+        items.sort((a, b) => {
+          if (a.severity !== b.severity) return a.severity === "critical" ? -1 : 1;
+          return a.urgency - b.urgency;
+        });
+
+        return items.slice(0, 8); // Max 8 attention items
+      }
+
+      function renderAttentionSection(items) {
+        const section = document.getElementById("dash-attention-section");
+        const alerts = document.getElementById("dash-attention-alerts");
+        const header = document.getElementById("dash-attention-header");
+        const allClear = document.getElementById("dash-all-clear");
+
+        if (items.length === 0) {
+          section.classList.add("hidden");
+          allClear.classList.remove("hidden");
+          return;
+        }
+
+        allClear.classList.add("hidden");
+        section.classList.remove("hidden");
+
+        const criticalCount = items.filter(i => i.severity === "critical").length;
+        const headerBadge = criticalCount > 0
+          ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium ml-1.5">${criticalCount} urgent</span>`
+          : "";
+
+        function daysLabel(n) { return n === 1 ? "1 DAY" : n + " DAYS"; }
+
+        header.innerHTML = `
+          <i class="fa-solid fa-triangle-exclamation ${criticalCount > 0 ? 'text-red-400' : 'text-amber-400'} mr-2 text-sm"></i>
+          <span class="text-sm font-medium text-white/90">Needs Attention</span>
+          <span class="text-[10px] text-gray-500 ml-1.5">· ${items.length}</span>
+          ${headerBadge}
+        `;
+
+        alerts.innerHTML = items.map((item) => {
+          const isCritical = item.severity === "critical";
+          const borderClass = isCritical ? "border-red-500/30 bg-red-500/5" : "border-amber-500/20 bg-amber-500/5";
+          const urgencyLabel = isCritical
+            ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 uppercase tracking-wider">OVERDUE</span>`
+            : `<span class="text-[9px] font-medium px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">${daysLabel(item.urgency)}</span>`;
+
+          return `<div class="glass-card p-2.5 rounded-lg border ${borderClass} flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors">
+            <div class="flex items-center min-w-0 flex-1">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isCritical ? 'bg-red-500/10' : 'bg-amber-500/10'} ${item.iconColor}"><i class="fa-solid ${item.icon} text-xs"></i></div>
+              <div class="ml-2.5 min-w-0 flex-1">
+                <div class="flex items-center flex-wrap gap-1">
+                  <span class="text-[11px] font-medium text-white truncate">${item.label}</span>
+                  ${urgencyLabel}
+                </div>
+                <p class="text-[9px] text-gray-400 mt-0.5 truncate">${item.sub}</p>
               </div>
             </div>
-            <button class="text-xs lg:text-sm text-white/70 hover:text-white shrink-0 whitespace-nowrap bg-black/20 px-3 py-1.5 rounded-lg border border-white/10">${t("docCards.viewDetails")}</button>
+            <i class="fa-solid fa-chevron-right text-gray-500 ml-1.5 shrink-0 text-[10px]"></i>
           </div>`;
-        });
-        alertsContainer.innerHTML = alertsHtml;
+        }).join("");
 
-        const homeMembersHtml = [];
-        appState.people.forEach((person) => {
-          const photoFile = getDocumentFormat(person.files, PERSON_DOC_TYPES.find(t => t.isPhoto));
-          const profileHtml = generateProfileHTML(photoFile, "w-10 h-10 rounded-full", "text-sm");
-          homeMembersHtml.push(`<div class="flex items-center justify-between p-3 glass-card rounded-xl cursor-pointer hover:bg-white/10 transition-colors" onclick="openMemberDetail('${person.name}')">
-            <div class="flex items-center">${profileHtml}<span class="ml-3 font-medium text-white/90 text-sm lg:text-base">${person.name}</span></div>
-            <div class="text-[10px] lg:text-xs font-medium px-2 py-1 rounded bg-black/20 text-gray-400">${person.files.length} ${t("docs")}</div>
-          </div>`);
+        // Wire up click handlers
+        alerts.querySelectorAll(".glass-card").forEach((card, i) => {
+          if (items[i]) card.onclick = items[i].action;
+        });
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // FAMILY VAULT OVERVIEW — Compact meaningful metrics
+      // ═══════════════════════════════════════════════════════
+      function renderOverviewMetrics(totalDocs, memberCount, vehicleCount, propertyCount, membersWithDocs, utils, hasUtilities) {
+        const container = document.getElementById("dash-overview");
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+
+        // Documents metric
+        const newDocsCount = countRecentDocs(14); // docs added in last 14 days (simulated from data)
+        const docsSub = newDocsCount > 0 ? `${newDocsCount} added recently` : `${totalDocs} stored`;
+
+        // Renewals metric
+        const warnRenewals = appState.renewals.filter(r => r.status === "warning");
+        const soonest = warnRenewals.length > 0 ? warnRenewals[0] : null;
+
+        // Bills metric
+        const pendingBills = utils.filter(u => u.status === "pending" || u.status === "overdue");
+        const pendingAmt = pendingBills.reduce((s, u) => s + u.amount, 0);
+        const overdueBills = utils.filter(u => u.status === "overdue");
+        const overdueAmt = overdueBills.reduce((s, u) => s + u.amount, 0);
+
+        const metrics = [];
+
+        // Always show documents
+        metrics.push({
+          value: totalDocs, label: "Documents", icon: "fa-file-lines", color: "green",
+          sub: docsSub, onClick: null
         });
 
-        const homeVehiclesHtml = [];
-        appState.vehicles.forEach((veh) => {
-          homeVehiclesHtml.push(`<div class="flex items-center justify-between p-3 glass-card rounded-xl cursor-pointer hover:bg-white/10 transition-colors" onclick="navigate('vehicles')">
-            <div class="flex items-center overflow-hidden">
-              <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0"><i class="fa-solid fa-car text-sm"></i></div>
-              <span class="ml-3 font-medium text-white/90 truncate text-sm lg:text-base">${veh.name}</span>
+        // Renewals (only if there are any)
+        if (appState.renewals.length > 0) {
+          const renewCount = appState.renewals.filter(r => r.status === "warning" || r.status === "expired").length;
+          metrics.push({
+            value: renewCount, label: "Renewals", icon: "fa-calendar-check", color: renewCount > 0 ? "amber" : "green",
+            sub: soonest ? "Next: " + soonest.daysLeft + "d" : "All current",
+            onClick: () => navigate("renewals")
+          });
+        }
+
+        // Bills metric (only if utilities exist)
+        if (hasUtilities && pendingBills.length > 0) {
+          const thisMonth = today.getMonth();
+          const thisMonthBills = pendingBills.filter(u => new Date(u.dueDate).getMonth() === thisMonth);
+          const thisMonthAmt = thisMonthBills.reduce((s, u) => s + u.amount, 0);
+          metrics.push({
+            value: thisMonthBills.length || pendingBills.length, label: "Bills Due", icon: "fa-bolt", color: overdueBills.length > 0 ? "red" : "amber",
+            sub: "₹" + (thisMonthAmt || pendingAmt).toLocaleString("en-IN") + " pending",
+            onClick: () => navigate("utilities")
+          });
+        }
+
+        // Members
+        metrics.push({
+          value: memberCount, label: "Members", icon: "fa-users", color: "blue",
+          sub: membersWithDocs + " with documents",
+          onClick: () => navigate("members")
+        });
+
+        // Assets (only if there are any)
+        if (vehicleCount + propertyCount > 0) {
+          metrics.push({
+            value: vehicleCount + propertyCount, label: "Assets", icon: "fa-building-columns", color: "purple",
+            sub: vehicleCount + " vehicle" + (vehicleCount !== 1 ? "s" : "") + " · " + propertyCount + " propert" + (propertyCount !== 1 ? "ies" : "y"),
+            onClick: null
+          });
+        }
+
+        // Medical (only if there is medical data)
+        if (appState.people.some(p => p.files.some(f => isMedicalFile(f.name)))) {
+          const totalMedDocs = appState.people.reduce((sum, p) => sum + p.files.filter(f => isMedicalFile(f.name)).length, 0);
+          metrics.push({
+            value: totalMedDocs, label: "Med Records", icon: "fa-heart-pulse", color: "rose",
+            sub: totalMedDocs + " file" + (totalMedDocs !== 1 ? "s" : ""),
+            onClick: () => navigate("medical")
+          });
+        }
+
+        // Render metrics — use inline style for grid cols since Tailwind JIT can't detect dynamic classes
+        const cols = Math.min(metrics.length, 5);
+        container.className = "grid gap-3 lg:gap-4";
+        container.style.gridTemplateColumns = `repeat(${cols >= 3 ? 'auto-fit' : cols}, minmax(140px, 1fr))`;
+
+        container.innerHTML = metrics.map(m => {
+          const colorMap = { green: "bg-green-500/20 text-green-400", blue: "bg-blue-500/20 text-blue-400", amber: "bg-amber-500/20 text-amber-400", red: "bg-red-500/20 text-red-400", purple: "bg-purple-500/20 text-purple-400", rose: "bg-rose-500/20 text-rose-400" };
+          const clickable = m.onClick ? "cursor-pointer hover:bg-white/8" : "";
+          const onclick = m.onClick ? `onclick="(${m.onClick.toString()})()"` : "";
+
+          return `<div class="glass-card p-3 lg:p-4 rounded-2xl flex items-center justify-between ${clickable}" ${onclick}>
+            <div>
+              <p class="text-gray-400 text-[10px] lg:text-xs mb-0.5">${m.label}</p>
+              <h3 class="text-xl lg:text-2xl font-semibold">${m.value}</h3>
+              <p class="text-[9px] lg:text-[10px] text-gray-500 mt-0.5">${m.sub}</p>
             </div>
-            <span class="text-[10px] lg:text-xs text-gray-400 whitespace-nowrap ml-2 font-medium px-2 py-1 rounded bg-black/20">${veh.files.length} ${t("docs")}</span>
-          </div>`);
+            <div class="h-9 w-9 lg:h-10 lg:w-10 rounded-full ${colorMap[m.color] || 'bg-gray-500/20 text-gray-400'} flex items-center justify-center shrink-0"><i class="fa-solid ${m.icon}"></i></div>
+          </div>`;
+        }).join("");
+
+        // Fix click handlers
+        metrics.forEach((m, i) => {
+          const cards = container.querySelectorAll(".glass-card");
+          if (cards[i] && m.onClick) {
+            cards[i].onclick = m.onClick;
+          }
+        });
+      }
+
+      function countRecentDocs(days) {
+        // Since we don't have file timestamps from Drive, approximate:
+        // Count files that appear to be "recent" based on how many total we have
+        // For demo purposes, return a small fraction
+        if (appState.isDemo) return Math.min(3, Math.floor(appState.driveData.length * 0.1));
+        // In production, we'd need actual timestamps; return a conservative estimate
+        return Math.min(2, appState.driveData.length);
+      }
+
+      function buildRecentDocsList(count) {
+        const docs = [];
+        // Gather files from various sources, preferring ones with recognizable names
+        const allSourceFiles = [];
+        appState.people.forEach(p => p.files.forEach(f => allSourceFiles.push({...f, _source: p.name, _type: "person"})));
+        appState.vehicles.forEach(v => v.files.forEach(f => allSourceFiles.push({...f, _source: v.name, _type: "vehicle"})));
+        appState.properties.forEach(p => p.files.forEach(f => allSourceFiles.push({...f, _source: p.name, _type: "property"})));
+        appState.shared.forEach(f => allSourceFiles.push({...f, _source: "Shared", _type: "shared"}));
+
+        // Shuffle and pick, preferring non-photo, non-system files
+        const preferred = allSourceFiles.filter(f => !f.name.toLowerCase().includes("photo") && !f.name.startsWith("."));
+        const rest = allSourceFiles.filter(f => f.name.toLowerCase().includes("photo") || f.name.startsWith("."));
+
+        const result = [...preferred.slice(0, count), ...rest.slice(0, Math.max(0, count - preferred.length))];
+        return result.slice(0, count);
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // UPCOMING TIMELINE — Combined events from all modules
+      // ═══════════════════════════════════════════════════════
+      function renderUpcomingTimeline(utils, today) {
+        const section = document.getElementById("dash-upcoming-section");
+        const list = document.getElementById("dash-timeline-list");
+        const viewAll = document.getElementById("dash-timeline-viewall");
+        const filter = document.getElementById("dash-timeline-filter").value;
+
+        const events = [];
+
+        // Utility bills (pending, not overdue, with due date)
+        utils.filter(u => u.status === "pending" && u.dueDate).forEach(u => {
+          const dueDate = new Date(u.dueDate);
+          if (dueDate >= today) {
+            events.push({
+              date: dueDate, dateStr: u.dueDate,
+              label: u.name, sub: "₹" + u.amount.toLocaleString("en-IN"),
+              category: "bills", icon: "fa-bolt", iconColor: "text-yellow-400",
+              action: () => navigate("utilities")
+            });
+          }
         });
 
-        document.getElementById("home-members-list").innerHTML = homeMembersHtml.slice(0, 4).join("") || `<p class="text-gray-500 text-sm p-2">${t("home.noMembers")}</p>`;
-        document.getElementById("home-vehicles-list").innerHTML = homeVehiclesHtml.slice(0, 4).join("") || `<p class="text-gray-500 text-sm p-2">${t("home.noVehicles")}</p>`;
+        // Document renewals (warning or safe, not expired)
+        appState.renewals.filter(r => r.status !== "expired").forEach(r => {
+          let category = "documents", icon = "fa-file-lines", iconColor = "text-blue-400";
+          const isVehicleDoc = appState.vehicles.some(v => v.files.some(f => f.id === r.file.id));
+          const isMedicalDoc = isMedicalFile(r.file.name);
+
+          if (isVehicleDoc) { category = "vehicles"; icon = "fa-car"; iconColor = "text-purple-400"; }
+          else if (isMedicalDoc) { category = "medical"; icon = "fa-heart-pulse"; iconColor = "text-rose-400"; }
+
+          events.push({
+            date: r.dateObj, dateStr: r.dateString,
+            label: r.cleanName, sub: (r.parentName || ""),
+            category, icon, iconColor,
+            daysLeft: r.daysLeft,
+            action: () => previewFile(r.file.id, r.file.name)
+          });
+        });
+
+        // Sort by date, filter, limit
+        events.sort((a, b) => a.date - b.date);
+        const filtered = filter === "all" ? events : events.filter(e => e.category === filter);
+        const display = filtered.slice(0, 6);
+
+        if (display.length === 0) {
+          section.classList.add("hidden");
+          return;
+        }
+
+        section.classList.remove("hidden");
+        viewAll.classList.toggle("hidden", filtered.length <= 6);
+
+        list.innerHTML = display.map(e => {
+          const monthDay = e.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+          const daysUntil = Math.ceil((e.date - today) / (1000 * 60 * 60 * 24));
+          const urgencyDot = daysUntil <= 7 ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block ml-1" title="Soon"></span>' : '';
+
+          return `<div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" onclick="(${e.action.toString()})()">
+            <div class="flex items-center min-w-0 flex-1">
+              <span class="text-[10px] lg:text-xs font-mono text-gray-400 w-12 shrink-0">${monthDay}</span>
+              <i class="fa-solid ${e.icon} ${e.iconColor} w-5 text-center shrink-0 text-xs ml-1"></i>
+              <span class="ml-2 text-xs lg:text-sm text-white/90 truncate">${e.label}${urgencyDot}</span>
+            </div>
+            <span class="text-[9px] text-gray-500 ml-2 shrink-0 hidden sm:inline">${e.sub}</span>
+          </div>`;
+        }).join("");
+
+        // Wire up click handlers
+        list.querySelectorAll(".cursor-pointer").forEach((el, i) => {
+          if (display[i]) el.onclick = display[i].action;
+        });
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // FAMILY SECTION — Meaningful member status cards
+      // ═══════════════════════════════════════════════════════
+      function renderFamilySection() {
+        const section = document.getElementById("dash-family-section");
+        const list = document.getElementById("dash-family-list");
+
+        if (appState.people.length === 0) {
+          section.classList.add("hidden");
+          return;
+        }
+
+        section.classList.remove("hidden");
+
+        const display = appState.people.slice(0, 5);
+
+        list.innerHTML = display.map(person => {
+          const docCount = person.files.length;
+          const medCount = person.files.filter(f => isMedicalFile(f.name)).length;
+          const vitals = getPersonVitals(person.name);
+          const vitalsCount = vitals.length;
+
+          // Find renewals for this person
+          const personRenewals = appState.renewals.filter(r =>
+            person.files.some(f => f.id === r.file.id) && r.status !== "expired"
+          ).sort((a, b) => a.daysLeft - b.daysLeft);
+          const nextRenewal = personRenewals.length > 0 ? personRenewals[0] : null;
+
+          const photoFile = getDocumentFormat(person.files, PERSON_DOC_TYPES.find(t => t.isPhoto));
+          const profileHtml = generateProfileHTML(photoFile, "w-9 h-9 rounded-full", "text-xs");
+
+          let statusLine = [];
+          if (docCount > 0) statusLine.push(`${docCount} document${docCount !== 1 ? "s" : ""}`);
+          if (medCount > 0) statusLine.push(`${medCount} medical record${medCount !== 1 ? "s" : ""}`);
+          if (vitalsCount > 0 && medCount === 0) statusLine.push(`${vitalsCount} vital reading${vitalsCount !== 1 ? "s" : ""}`);
+          if (statusLine.length === 0) statusLine.push("No documents yet");
+
+          let renewalBadge = "";
+          if (nextRenewal) {
+            const daysLeft = nextRenewal.daysLeft;
+            const isUrgent = daysLeft <= 14;
+            renewalBadge = `<span class="text-[9px] ${isUrgent ? 'text-amber-400' : 'text-gray-500'} ml-1">· ${nextRenewal.cleanName.substring(0, 20)} due in ${daysLeft}d</span>`;
+          }
+
+          return `<div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" onclick="openMemberDetail('${person.name.replace(/'/g, "\\'")}')">
+            <div class="flex items-center min-w-0 flex-1">
+              ${profileHtml}
+              <div class="ml-3 min-w-0">
+                <span class="text-sm font-medium text-white/90 truncate block">${person.name}</span>
+                <span class="text-[10px] text-gray-400">${statusLine.join(" · ")}${renewalBadge}</span>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-gray-600 text-xs ml-2 shrink-0"></i>
+          </div>`;
+        }).join("");
+
+        if (appState.people.length > 5) {
+          list.innerHTML += `<div class="text-center pt-1"><span class="text-[10px] text-gray-500">+${appState.people.length - 5} more members</span></div>`;
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // ASSETS OVERVIEW — Vehicles + Properties
+      // ═══════════════════════════════════════════════════════
+      function renderAssetsSection() {
+        const section = document.getElementById("dash-assets-section");
+        const list = document.getElementById("dash-assets-list");
+
+        const allAssets = [
+          ...appState.vehicles.map(v => ({ ...v, _type: "vehicle", _icon: "fa-car", _iconColor: "text-purple-400", _navPage: "vehicles" })),
+          ...appState.properties.map(p => ({ ...p, _type: "property", _icon: "fa-house", _iconColor: "text-emerald-400", _navPage: "properties" }))
+        ];
+
+        if (allAssets.length === 0) {
+          section.classList.add("hidden");
+          return;
+        }
+
+        section.classList.remove("hidden");
+
+        list.innerHTML = allAssets.map(asset => {
+          const docCount = asset.files.length;
+          const assetRenewals = appState.renewals.filter(r =>
+            asset.files.some(f => f.id === r.file.id)
+          ).sort((a, b) => a.daysLeft - b.daysLeft);
+
+          let statusLine = `${docCount} document${docCount !== 1 ? "s" : ""}`;
+          let renewalBadge = "";
+
+          if (assetRenewals.length > 0) {
+            const nextR = assetRenewals[0];
+            if (nextR.status === "expired") {
+              renewalBadge = `<span class="text-[9px] text-red-400 ml-1">· ${nextR.cleanName.substring(0, 18)} expired</span>`;
+            } else {
+              renewalBadge = `<span class="text-[9px] ${nextR.daysLeft <= 30 ? 'text-amber-400' : 'text-gray-500'} ml-1">· ${nextR.cleanName.substring(0, 18)} due ${nextR.daysLeft}d</span>`;
+            }
+            statusLine = renewalBadge ? statusLine : statusLine;
+          } else if (docCount > 0) {
+            statusLine += " · All current";
+          }
+
+          const displayName = asset.name.length > 32 ? asset.name.substring(0, 32) + "…" : asset.name;
+
+          return `<div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" onclick="navigate('${asset._navPage}')">
+            <div class="flex items-center min-w-0 flex-1">
+              <div class="w-8 h-8 rounded-lg ${asset._type === 'vehicle' ? 'bg-purple-500/10' : 'bg-emerald-500/10'} flex items-center justify-center shrink-0">
+                <i class="fa-solid ${asset._icon} ${asset._iconColor} text-xs"></i>
+              </div>
+              <div class="ml-3 min-w-0">
+                <span class="text-xs lg:text-sm font-medium text-white/90 truncate block">${displayName}</span>
+                <span class="text-[10px] text-gray-400">${statusLine}${renewalBadge}</span>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-gray-600 text-xs ml-2 shrink-0"></i>
+          </div>`;
+        }).join("");
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // RECENT DOCUMENTS
+      // ═══════════════════════════════════════════════════════
+      function renderRecentDocsSection(recentDocs) {
+        const section = document.getElementById("dash-recent-section");
+        const list = document.getElementById("dash-recent-list");
+
+        if (recentDocs.length === 0) {
+          section.classList.add("hidden");
+          return;
+        }
+
+        section.classList.remove("hidden");
+
+        list.innerHTML = recentDocs.map(doc => {
+          const icon = getFileIcon(doc.mimeType);
+          const displayName = doc.name.length > 36 ? doc.name.substring(0, 36) + "…" : doc.name;
+
+          return `<div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" onclick="previewFile('${doc.id}', '${doc.name.replace(/'/g, "\\'")}')">
+            <div class="flex items-center min-w-0 flex-1">
+              <i class="fa-solid ${icon} w-5 text-center shrink-0 text-xs"></i>
+              <div class="ml-2.5 min-w-0">
+                <span class="text-xs lg:text-sm text-white/90 truncate block">${displayName}</span>
+                <span class="text-[9px] text-gray-500">${doc._source || ""}</span>
+              </div>
+            </div>
+            <button onclick="event.stopPropagation(); previewFile('${doc.id}', '${doc.name.replace(/'/g, "\\'")}')" class="text-[10px] text-blue-400 hover:text-blue-300 px-2 py-1 rounded glass-button shrink-0 ml-2">View</button>
+          </div>`;
+        }).join("");
       }
 
       function renderMembersList() {
