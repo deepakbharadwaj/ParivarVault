@@ -422,11 +422,10 @@
               <!-- Family Section -->
               <div id="dash-family-section" class="hidden">
                 <div class="glass-panel p-4 lg:p-5 rounded-2xl">
-                  <div class="flex justify-between items-center mb-4">
+                  <div class="flex justify-between items-center mb-3">
                     <h2 class="text-sm lg:text-base font-medium text-white/80"><i class="fa-solid fa-users text-blue-400 mr-2"></i>Family</h2>
-                    <button onclick="navigate('members')" class="text-xs text-blue-400 hover:text-blue-300">View All</button>
                   </div>
-                  <div id="dash-family-list" class="space-y-2"></div>
+                  <div id="dash-family-list" class="space-y-1"></div>
                 </div>
               </div>
 
@@ -2545,29 +2544,72 @@
         section.classList.remove("hidden");
         viewAll.classList.toggle("hidden", filtered.length <= 6);
 
-        list.innerHTML = display.map(e => {
-          const monthDay = e.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+        // ── Timeline graph rendering ──
+        list.className = "relative pl-8";
+        list.innerHTML = "";
+
+        // Vertical connector line
+        const line = document.createElement("div");
+        line.className = "absolute left-[15px] top-0 bottom-0 w-px";
+        line.style.background = "linear-gradient(to bottom, rgba(168,85,247,0.3), rgba(59,130,246,0.3), rgba(34,197,94,0.1))";
+        list.appendChild(line);
+
+        display.forEach((e, idx) => {
+          const dateNum = e.date.getDate();
+          const monthLabel = e.date.toLocaleDateString("en-IN", { month: "short" });
           const daysUntil = Math.ceil((e.date - today) / (1000 * 60 * 60 * 24));
-          const urgencyDot = daysUntil <= 7 ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block ml-1" title="Soon"></span>' : '';
 
-          return `<div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" onclick="(${e.action.toString()})()">
-            <div class="flex items-center min-w-0 flex-1">
-              <span class="text-[10px] lg:text-xs font-mono text-gray-400 w-12 shrink-0">${monthDay}</span>
-              <i class="fa-solid ${e.icon} ${e.iconColor} w-5 text-center shrink-0 text-xs ml-1"></i>
-              <span class="ml-2 text-xs lg:text-sm text-white/90 truncate">${e.label}${urgencyDot}</span>
+          // Urgency styling
+          let nodeRing = "border-purple-500/40 bg-purple-500/10";
+          let nodeDot = "bg-purple-400";
+          let urgencyBadge = "";
+          if (daysUntil <= 7) {
+            nodeRing = "border-amber-500/60 bg-amber-500/15";
+            nodeDot = "bg-amber-400";
+            urgencyBadge = `<span class="ml-2 text-[9px] font-medium text-amber-400 px-1.5 py-0.5 rounded-full bg-amber-400/10">${daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : daysUntil + "d"}</span>`;
+          } else if (daysUntil <= 30) {
+            nodeRing = "border-blue-500/40 bg-blue-500/10";
+            nodeDot = "bg-blue-400";
+          }
+
+          const iconBgMap = {
+            bills: "bg-yellow-500/15 text-yellow-400",
+            vehicles: "bg-purple-500/15 text-purple-400",
+            medical: "bg-rose-500/15 text-rose-400",
+            documents: "bg-blue-500/15 text-blue-400"
+          };
+          const iconBg = iconBgMap[e.category] || iconBgMap.documents;
+
+          const row = document.createElement("div");
+          row.className = "relative flex items-start mb-5 last:mb-0 cursor-pointer group";
+          row.onclick = e.action;
+
+          // Date node (circle)
+          row.innerHTML = `
+            <div class="absolute -left-8 top-0 w-[30px] h-[30px] rounded-full border-2 ${nodeRing} flex items-center justify-center z-10 transition-all group-hover:scale-110 group-hover:border-white/60">
+              <div class="w-2 h-2 rounded-full ${nodeDot}"></div>
             </div>
-            <span class="text-[9px] text-gray-500 ml-2 shrink-0 hidden sm:inline">${e.sub}</span>
-          </div>`;
-        }).join("");
-
-        // Wire up click handlers
-        list.querySelectorAll(".cursor-pointer").forEach((el, i) => {
-          if (display[i]) el.onclick = display[i].action;
+            <div class="flex-1 min-w-0 pl-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-semibold text-white/70 tabular-nums tracking-tight">${dateNum}</span>
+                <span class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">${monthLabel}</span>
+                ${urgencyBadge}
+              </div>
+              <div class="flex items-center gap-2 mt-1">
+                <div class="w-6 h-6 rounded-md ${iconBg} flex items-center justify-center shrink-0">
+                  <i class="fa-solid ${e.icon} text-[10px]"></i>
+                </div>
+                <span class="text-xs text-white/85 truncate font-medium">${e.label}</span>
+              </div>
+              ${e.sub ? `<div class="text-[10px] text-gray-500 mt-0.5 ml-8 truncate">${e.sub}</div>` : ""}
+            </div>
+          `;
+          list.appendChild(row);
         });
       }
 
       // ═══════════════════════════════════════════════════════
-      // FAMILY SECTION — Meaningful member status cards
+      // FAMILY SECTION — Simple clickable member names
       // ═══════════════════════════════════════════════════════
       function renderFamilySection() {
         const section = document.getElementById("dash-family-section");
@@ -2580,51 +2622,18 @@
 
         section.classList.remove("hidden");
 
-        const display = appState.people.slice(0, 5);
+        const display = appState.people;
 
         list.innerHTML = display.map(person => {
-          const docCount = person.files.length;
-          const medCount = person.files.filter(f => isMedicalFile(f.name)).length;
-          const vitals = getPersonVitals(person.name);
-          const vitalsCount = vitals.length;
-
-          // Find renewals for this person
-          const personRenewals = appState.renewals.filter(r =>
-            person.files.some(f => f.id === r.file.id) && r.status !== "expired"
-          ).sort((a, b) => a.daysLeft - b.daysLeft);
-          const nextRenewal = personRenewals.length > 0 ? personRenewals[0] : null;
-
           const photoFile = getDocumentFormat(person.files, PERSON_DOC_TYPES.find(t => t.isPhoto));
-          const profileHtml = generateProfileHTML(photoFile, "w-9 h-9 rounded-full", "text-xs");
+          const profileHtml = generateProfileHTML(photoFile, "w-8 h-8 rounded-full", "text-[10px]");
 
-          let statusLine = [];
-          if (docCount > 0) statusLine.push(`${docCount} document${docCount !== 1 ? "s" : ""}`);
-          if (medCount > 0) statusLine.push(`${medCount} medical record${medCount !== 1 ? "s" : ""}`);
-          if (vitalsCount > 0 && medCount === 0) statusLine.push(`${vitalsCount} vital reading${vitalsCount !== 1 ? "s" : ""}`);
-          if (statusLine.length === 0) statusLine.push("No documents yet");
-
-          let renewalBadge = "";
-          if (nextRenewal) {
-            const daysLeft = nextRenewal.daysLeft;
-            const isUrgent = daysLeft <= 14;
-            renewalBadge = `<span class="text-[9px] ${isUrgent ? 'text-amber-400' : 'text-gray-500'} ml-1">· ${nextRenewal.cleanName.substring(0, 20)} due in ${daysLeft}d</span>`;
-          }
-
-          return `<div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" onclick="openMemberDetail('${person.name.replace(/'/g, "\\'")}')">
-            <div class="flex items-center min-w-0 flex-1">
-              ${profileHtml}
-              <div class="ml-3 min-w-0">
-                <span class="text-sm font-medium text-white/90 truncate block">${person.name}</span>
-                <span class="text-[10px] text-gray-400">${statusLine.join(" · ")}${renewalBadge}</span>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-gray-600 text-xs ml-2 shrink-0"></i>
+          return `<div class="flex items-center p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group" onclick="openMemberDetail('${person.name.replace(/'/g, "\\'")}')">
+            ${profileHtml}
+            <span class="ml-3 text-sm text-white/80 group-hover:text-white transition-colors truncate">${person.name}</span>
+            <i class="fa-solid fa-chevron-right text-gray-600 text-[10px] ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"></i>
           </div>`;
         }).join("");
-
-        if (appState.people.length > 5) {
-          list.innerHTML += `<div class="text-center pt-1"><span class="text-[10px] text-gray-500">+${appState.people.length - 5} more members</span></div>`;
-        }
       }
 
       // ═══════════════════════════════════════════════════════
