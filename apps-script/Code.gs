@@ -502,7 +502,6 @@ function handleDeleteFolder(params) {
   let targetFolder;
 
   if (parentType === "SHARED") {
-    // For shared, we delete a file directly, not a folder
     return { success: false, error: "Use deleteFile for shared documents" };
   }
 
@@ -522,9 +521,17 @@ function handleDeleteFolder(params) {
     return { success: false, error: "Folder '" + folderName + "' not found" };
   }
 
-  // Move to trash (recoverable) instead of permanent delete
-  targetFolder.setTrashed(true);
-  return { success: true, message: "Folder '" + folderName + "' moved to trash" };
+  try {
+    targetFolder.setTrashed(true);
+    return {
+      success: true,
+      message: "Folder '" + folderName + "' moved to trash",
+      folderName: folderName,
+      parentType: parentType
+    };
+  } catch (err) {
+    return { success: false, error: "Failed to move folder to trash: " + err.toString() };
+  }
 }
 
 /**
@@ -600,7 +607,12 @@ function handleDeleteFile(params) {
     const file = DriveApp.getFileById(fileId);
     const fileName = file.getName();
     file.setTrashed(true);
-    return { success: true, message: "File '" + fileName + "' moved to trash" };
+    return {
+      success: true,
+      message: "File '" + fileName + "' moved to trash",
+      fileId: fileId,
+      fileName: fileName
+    };
   } catch (err) {
     return { success: false, error: "File not found or access denied: " + err.toString() };
   }

@@ -89,6 +89,36 @@ function mockDocumentElement() {
 // CORE LOGIC TESTS (extracted from index.html)
 // ═══════════════════════════════════════════════
 
+function resolveUploadTarget(target) {
+  if (!target) return null;
+  const normalizedTarget = {
+    parentType: target.parentType || null,
+    folderName: target.folderName || null,
+  };
+  if (normalizedTarget.parentType === "SHARED") {
+    normalizedTarget.folderName = "Shared_Documents";
+  }
+  if (!normalizedTarget.parentType || !normalizedTarget.folderName) {
+    return null;
+  }
+  return normalizedTarget;
+}
+
+function testResolveUploadTarget() {
+  TestRunner.suite("Upload Target Resolution");
+
+  TestRunner.equal("Returns null for missing target", resolveUploadTarget(null), null);
+  TestRunner.deepEqual("Normalizes people target", resolveUploadTarget({ parentType: "PEOPLE", folderName: "Dad" }), {
+    parentType: "PEOPLE",
+    folderName: "Dad",
+  });
+  TestRunner.deepEqual("Normalizes shared target", resolveUploadTarget({ parentType: "SHARED", folderName: "" }), {
+    parentType: "SHARED",
+    folderName: "Shared_Documents",
+  });
+  TestRunner.equal("Rejects incomplete target", resolveUploadTarget({ parentType: "PEOPLE" }), null);
+}
+
 // --- DUE_DATE_REGEX ---
 function testDueDateRegex() {
   TestRunner.suite("Due Date Regex");
@@ -478,6 +508,7 @@ function testWhatsAppShare() {
 function runAllTests() {
   mockDocumentElement();
 
+  testResolveUploadTarget();
   testDueDateRegex();
   testGetFileIcon();
   testGetDocumentFormat();

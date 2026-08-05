@@ -287,7 +287,7 @@
     <div class="blob blob-2"></div>
     <div class="blob blob-3"></div>
 
-    <aside class="glass-panel w-full lg:w-64 h-auto lg:h-full flex flex-row lg:flex-col justify-between shrink-0 transition-all duration-300 border-t lg:border-t-0 lg:border-r border-white/10 z-20 order-2 lg:order-1 relative lg:static bottom-0 pb-safe">
+    <aside class="glass-panel w-full lg:w-64 h-auto lg:h-full flex flex-row lg:flex-col justify-between shrink-0 transition-all duration-300 border-t lg:border-t-0 lg:border-r border-white/10 z-20 order-2 lg:order-1 relative lg:static bottom-0 pb-[env(safe-area-inset-bottom,0px)]">
       <div class="flex flex-row lg:flex-col w-full overflow-x-auto lg:overflow-visible no-scrollbar">
         <!-- Brand / Logo -->
         <div class="hidden lg:flex h-20 items-center justify-center lg:justify-start lg:px-6 border-b border-white/10 w-full shrink-0">
@@ -337,7 +337,7 @@
       </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-full relative z-10 order-1 lg:order-2 overflow-hidden">
+    <main class="flex-1 flex flex-col h-full relative z-10 order-1 lg:order-2 overflow-hidden pt-[env(safe-area-inset-top,0px)]">
       <header class="glass-panel h-16 lg:h-20 px-4 lg:px-6 flex items-center justify-between border-b border-white/10 shrink-0 z-30">
         <div class="flex items-center space-x-2 lg:space-x-4 min-w-0">
           <h1 id="page-title" class="text-lg lg:text-xl font-medium text-white/90 truncate" data-i18n="page.dashboard">Dashboard</h1>
@@ -1511,6 +1511,7 @@
           
           setBtnLoading(saveBtn, false);
           showToast(t("banks.saveSuccess"), "success", 2500);
+          updateLocalCache();
           closeBankModal();
           
           // Refresh the current detail view
@@ -1552,6 +1553,7 @@
           }
           
           showToast(t("banks.deleteSuccess"), "success", 2500);
+          updateLocalCache();
           
           if (typeof currentDetailName !== 'undefined' && currentDetailName) {
             openMemberDetail(currentDetailName);
@@ -1626,6 +1628,7 @@
           const res = await fetch(appState.config.appsScriptUrl, { method: "POST", body: formData });
           const result = await res.json();
           if (!result.success) throw new Error(result.error || "Save failed");
+          updateLocalCache();
         } catch (e) {
           console.error("Failed to save contact info:", e);
         }
@@ -1844,56 +1847,6 @@
         }, 100);
       }
 
-      // Silent background refresh — updates data without loading overlay.
-      // Called after every mutation (add/rename/delete/upload).
-      // Shows a brief "Syncing..." toast, fetches fresh data, re-renders.
-      async function silentRefresh() {
-        safeStorageRemove("vault_cache_v3");
-        MEM_CACHE.vault = null;
-        showToast("Syncing vault...", "info", 2000);
-        await new Promise(r => setTimeout(r, 500));
-        try {
-          const res = await fetch(appState.config.appsScriptUrl);
-          const data = await res.json();
-          if (data.error) throw new Error(data.error);
-          const cleanFiles = (files) => files ? files.filter(f => f && f.name && !f.name.startsWith('.')) : [];
-          appState.people = data.people ? data.people.map(p => ({ ...p, files: cleanFiles(p.files) })) : [];
-          appState.vehicles = data.vehicles ? data.vehicles.map(v => ({ ...v, files: cleanFiles(v.files) })) : [];
-          appState.properties = data.properties ? data.properties.map(prop => ({ ...prop, files: cleanFiles(prop.files) })) : [];
-          appState.shared = cleanFiles(data.shared);
-          appState.driveData = cleanFiles(data.allFiles);
-          if (data.bankAccounts && data.bankAccounts.length > 0) appState.bankData = data.bankAccounts;
-          updateLocalCache();
-          processRenewals();
-          renderAll();
-          if (typeof currentDetailName !== 'undefined' && currentDetailName) openMemberDetail(currentDetailName);
-          if (typeof medicalSelectedPerson !== 'undefined' && medicalSelectedPerson) openMedicalDetail(medicalSelectedPerson);
-        } catch (e) {
-          console.warn("[Vault] Silent refresh failed:", e.message);
-          try {
-            await new Promise(r => setTimeout(r, 500));
-            const res2 = await fetch(appState.config.appsScriptUrl);
-            const data2 = await res2.json();
-            if (!data2.error) {
-              const cf = (files) => files ? files.filter(f => f && f.name && !f.name.startsWith('.')) : [];
-              appState.people = data2.people ? data2.people.map(p => ({ ...p, files: cf(p.files) })) : [];
-              appState.vehicles = data2.vehicles ? data2.vehicles.map(v => ({ ...v, files: cf(v.files) })) : [];
-              appState.properties = data2.properties ? data2.properties.map(prop => ({ ...prop, files: cf(prop.files) })) : [];
-              appState.shared = cf(data2.shared);
-              appState.driveData = cf(data2.allFiles);
-              if (data2.bankAccounts && data2.bankAccounts.length > 0) appState.bankData = data2.bankAccounts;
-              updateLocalCache();
-              processRenewals();
-              renderAll();
-              if (typeof currentDetailName !== 'undefined' && currentDetailName) openMemberDetail(currentDetailName);
-              if (typeof medicalSelectedPerson !== 'undefined' && medicalSelectedPerson) openMedicalDetail(medicalSelectedPerson);
-            }
-          } catch (e2) {
-            console.warn("[Vault] Silent refresh retry also failed:", e2.message);
-          }
-        }
-      }
-
       function navigate(viewName) {
         showView(viewName);
         document.querySelectorAll(".nav-btn").forEach((btn) => {
@@ -2091,6 +2044,145 @@
             console.warn("[Vault] Cache parse failed, clearing.");
             safeStorageRemove("vault_cache_v3");
           }
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // TARGETED STATE HELPERS — update local state directly
+      // after a successful Drive API call, instead of doing a
+      // full silentRefresh() which fetches everything.
+      // ═══════════════════════════════════════════════════════
+
+      function getTargetArrayAndEntry(parentType, folderName) {
+        let arr, entry;
+        if (parentType === "SHARED") {
+          arr = appState.shared;
+          entry = null;
+        } else {
+          const map = { PEOPLE: appState.people, VEHICLES: appState.vehicles, PROPERTIES: appState.properties };
+          arr = map[parentType] || [];
+          entry = arr.find(e => e.name.trim().toLowerCase() === folderName.trim().toLowerCase());
+        }
+        return { arr, entry };
+      }
+
+      function addFileLocally(parentType, folderName, fileObj) {
+        const { arr, entry } = getTargetArrayAndEntry(parentType, folderName);
+        if (parentType === "SHARED") {
+          arr.push(fileObj);
+        } else if (entry) {
+          entry.files.push(fileObj);
+        } else {
+          arr.push({ name: folderName, files: [fileObj] });
+        }
+        // Also update driveData
+        appState.driveData.push({ ...fileObj, parentName: parentType === "SHARED" ? "Shared Documents" : folderName });
+      }
+
+      function removeFileLocally(fileId) {
+        // Remove from people/vehicles/properties
+        [appState.people, appState.vehicles, appState.properties].forEach(arr => {
+          arr.forEach(entry => {
+            entry.files = entry.files.filter(f => f.id !== fileId);
+          });
+        });
+        // Remove from shared
+        appState.shared = appState.shared.filter(f => f.id !== fileId);
+        // Remove from driveData
+        appState.driveData = appState.driveData.filter(f => f.id !== fileId);
+      }
+
+      function removeFolderLocally(parentType, folderName) {
+        const map = { PEOPLE: appState.people, VEHICLES: appState.vehicles, PROPERTIES: appState.properties };
+        const arr = map[parentType];
+        if (!arr) return;
+        const idx = arr.findIndex(e => e.name.trim().toLowerCase() === folderName.trim().toLowerCase());
+        if (idx >= 0) {
+          const removed = arr.splice(idx, 1)[0];
+          // Remove all files from this folder from driveData
+          const removedIds = new Set((removed.files || []).map(f => f.id));
+          appState.driveData = appState.driveData.filter(f => !removedIds.has(f.id));
+        }
+      }
+
+      function addFolderLocally(parentType, folderName) {
+        const map = { PEOPLE: appState.people, VEHICLES: appState.vehicles, PROPERTIES: appState.properties };
+        const arr = map[parentType];
+        if (!arr) return;
+        if (!arr.find(e => e.name.trim().toLowerCase() === folderName.trim().toLowerCase())) {
+          arr.push({ name: folderName, files: [] });
+        }
+      }
+
+      function renameFolderLocally(parentType, oldName, newName) {
+        const map = { PEOPLE: appState.people, VEHICLES: appState.vehicles, PROPERTIES: appState.properties };
+        const arr = map[parentType];
+        if (!arr) return;
+        const entry = arr.find(e => e.name.trim().toLowerCase() === oldName.trim().toLowerCase());
+        if (entry) {
+          entry.name = newName;
+          // Update parentName in driveData
+          appState.driveData.forEach(f => { if (f.parentName === oldName) f.parentName = newName; });
+          // Update bank data person name if this is a PEOPLE rename
+          if (parentType === "PEOPLE") {
+            const bankEntry = appState.bankData.find(b => b.person.trim().toLowerCase() === oldName.trim().toLowerCase());
+            if (bankEntry) bankEntry.person = newName;
+          }
+        }
+      }
+
+      function updateFileNameLocally(fileId, newName) {
+        // Update in people/vehicles/properties/shared
+        [appState.people, appState.vehicles, appState.properties].forEach(arr => {
+          arr.forEach(entry => {
+            const file = entry.files.find(f => f.id === fileId);
+            if (file) file.name = newName;
+          });
+        });
+        const sf = appState.shared.find(f => f.id === fileId);
+        if (sf) sf.name = newName;
+        // Update in driveData
+        const df = appState.driveData.find(f => f.id === fileId);
+        if (df) df.name = newName;
+      }
+
+      function commitAndRender() {
+        updateLocalCache();
+        processRenewals();
+        renderAll();
+      }
+
+      function refreshCurrentView() {
+        // Find the currently visible view section
+        const activeView = [...document.querySelectorAll(".view-section")].find(v => !v.classList.contains("hidden"));
+        if (!activeView) return;
+
+        const viewId = activeView.id;
+        switch (viewId) {
+          case "view-home": renderDashboard(); break;
+          case "view-members": renderMembersList(); break;
+          case "view-vehicles": renderVehiclesList(); break;
+          case "view-properties": renderPropertiesList(); break;
+          case "view-renewals": renderRenewalsList(); break;
+          case "view-shared": renderSharedList(); break;
+          case "view-member-detail":
+            if (typeof currentDetailName !== 'undefined' && currentDetailName) {
+              openMemberDetail(currentDetailName);
+            }
+            break;
+          case "view-medical":
+            if (!document.getElementById("medical-detail").classList.contains("hidden") && medicalSelectedPerson) {
+              // Medical detail is open — refresh it
+              renderVitalsCards(medicalSelectedPerson);
+              renderVitalsTable(medicalSelectedPerson);
+              renderVitalsChart(medicalSelectedPerson);
+              const person = appState.people.find(p => p.name === medicalSelectedPerson);
+              if (person) renderMedicalDocs(person);
+            } else {
+              renderMedicalList();
+            }
+            break;
+          case "view-utilities": renderUtilities(); break;
         }
       }
 
@@ -3925,7 +4017,9 @@
         if (result && result.success) {
           showToast("Member '" + name + "' added successfully!", "success");
           closeAddMemberModal();
-          await silentRefresh();
+          addFolderLocally("PEOPLE", name);
+          commitAndRender();
+          navigate("members");
         }
       }
 
@@ -3949,7 +4043,9 @@
         if (result && result.success) {
           showToast("Vehicle '" + name + "' added!", "success");
           closeAddVehicleModal();
-          await silentRefresh();
+          addFolderLocally("VEHICLES", name);
+          commitAndRender();
+          navigate("vehicles");
         }
       }
 
@@ -3973,7 +4069,9 @@
         if (result && result.success) {
           showToast("Property '" + name + "' added!", "success");
           closeAddPropertyModal();
-          await silentRefresh();
+          addFolderLocally("PROPERTIES", name);
+          commitAndRender();
+          navigate("properties");
         }
       }
 
@@ -4008,22 +4106,60 @@
         const d = pendingDelete;
         const wasFolderDelete = d.type === "folder";
         const deletedParentType = d.parentType;
+        const deleteBtn = document.getElementById("confirm-delete-btn");
+        if (deleteBtn) {
+          deleteBtn.disabled = true;
+          deleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
+        }
         closeConfirmModal();
         showToast("Deleting...", "info", 2000);
+
         let result;
-        if (d.type === "folder") {
-          result = await apiPost({ action: "deleteFolder", parentType: d.parentType, folderName: d.folderName });
-        } else if (d.type === "file") {
-          result = await apiPost({ action: "deleteFile", fileId: d.fileId });
+        try {
+          if (d.type === "folder") {
+            if (!d.parentType || !d.folderName) {
+              throw new Error("Missing folder target for deletion.");
+            }
+            result = await apiPost({ action: "deleteFolder", parentType: d.parentType, folderName: d.folderName });
+          } else if (d.type === "file") {
+            if (!d.fileId) {
+              throw new Error("Missing file ID for deletion.");
+            }
+            result = await apiPost({ action: "deleteFile", fileId: d.fileId });
+          }
+        } catch (err) {
+          result = { success: false, error: err.message || String(err) };
         }
+
         if (result && result.success) {
+          if (d.type === "folder") {
+            removeFolderLocally(deletedParentType, d.folderName);
+          } else if (d.type === "file") {
+            removeFileLocally(d.fileId);
+          }
+          commitAndRender();
           showToast("'" + d.label + "' deleted successfully!", "success");
-          await silentRefresh();
+
+          // Refresh the currently active view immediately
+          refreshCurrentView();
+
+          // Navigate away for folder deletes
           if (wasFolderDelete) {
             if (deletedParentType === "PEOPLE") navigate("members");
             else if (deletedParentType === "VEHICLES") navigate("vehicles");
             else if (deletedParentType === "PROPERTIES") navigate("properties");
           }
+
+          // Background server sync (fire-and-forget, won't disrupt the view)
+          syncVaultData(true);
+        } else {
+          showToast(result?.error || "Delete failed. Please try again.", "error", 5000);
+        }
+
+        if (deleteBtn) {
+          deleteBtn.disabled = false;
+          deleteBtn.innerHTML = '<i class="fa-solid fa-trash mr-2"></i> <span data-i18n="modal.delete">Delete</span>';
+          applyTranslations();
         }
       }
 
@@ -4033,11 +4169,31 @@
       let uploadTarget = null; // { parentType, folderName }
       let selectedFile = null;
 
+      function resolveUploadTarget(target) {
+        if (!target) return null;
+        const normalizedTarget = {
+          parentType: target.parentType || null,
+          folderName: target.folderName || null
+        };
+        if (normalizedTarget.parentType === "SHARED") {
+          normalizedTarget.folderName = "Shared_Documents";
+        }
+        if (!normalizedTarget.parentType || !normalizedTarget.folderName) {
+          return null;
+        }
+        return normalizedTarget;
+      }
+
       function openUploadModal(parentType, folderName) {
-        uploadTarget = { parentType, folderName };
+        const normalizedTarget = resolveUploadTarget({ parentType, folderName });
+        if (!normalizedTarget) {
+          showToast("Please choose a valid destination for the upload.", "error");
+          return;
+        }
+        uploadTarget = normalizedTarget;
         selectedFile = null;
         document.getElementById("upload-target-info").innerHTML =
-          `<i class="fa-solid fa-folder-open mr-1 text-gray-500"></i> ${parentType === "SHARED" ? "Shared Documents" : folderName}`;
+          `<i class="fa-solid fa-folder-open mr-1 text-gray-500"></i> ${normalizedTarget.parentType === "SHARED" ? "Shared Documents" : normalizedTarget.folderName}`;
         document.getElementById("upload-file-preview").classList.add("hidden");
         document.getElementById("upload-drop-zone").classList.remove("hidden");
         document.getElementById("upload-submit-btn").disabled = true;
@@ -4137,9 +4293,15 @@
         setBtnLoading(renameBtn, false);
 
         if (result && result.success) {
+          renameFolderLocally(renameTarget.parentType, renameTarget.oldName, result.newName);
+          commitAndRender();
           showToast(`Renamed "${result.oldName}" → "${result.newName}"`, "success");
           closeRenameModal();
-          await silentRefresh();
+          // Refresh detail view if we're inside one
+          if (typeof currentDetailName !== 'undefined' && currentDetailName === renameTarget.oldName) {
+            currentDetailName = result.newName;
+            openMemberDetail(result.newName);
+          }
         }
       }
 
@@ -4200,8 +4362,20 @@
               mimeType: file.type || "image/jpeg"
             });
             if (result && result.success) {
-              await silentRefresh();
+              // Remove old photo files from local state
+              if (person) {
+                const oldIds = new Set(oldPhotos.map(f => f.id));
+                person.files = person.files.filter(f => !oldIds.has(f.id));
+                appState.driveData = appState.driveData.filter(f => !oldIds.has(f.id));
+              }
+              // Add new photo file to local state
+              addFileLocally(parentType, folderName, result.file);
+              commitAndRender();
               showToast("Profile photo updated!", "success");
+              // Refresh detail view
+              if (typeof currentDetailName !== 'undefined' && currentDetailName) {
+                openMemberDetail(currentDetailName);
+              }
             }
           } catch (err) {
             showToast("Photo upload failed: " + (err.message || String(err)), "error");
@@ -4241,9 +4415,14 @@
         });
 
         if (result && result.success) {
+          updateFileNameLocally(updateDueDateTarget.fileId, result.newName);
+          commitAndRender();
           showToast(`Due date updated: ${result.newName}`, "success");
           closeUpdateDueDateModal();
-          await silentRefresh();
+          // Refresh detail view if open
+          if (typeof currentDetailName !== 'undefined' && currentDetailName) {
+            openMemberDetail(currentDetailName);
+          }
         }
       }
 
@@ -4252,7 +4431,8 @@
       // ═══════════════════════════════════════════════════════
 
       async function doActualUpload(file, dueDate) {
-        if (!file || !uploadTarget) {
+        const target = resolveUploadTarget(uploadTarget);
+        if (!file || !target) {
           showToast("Upload cancelled: missing file or target.", "error");
           return;
         }
@@ -4276,19 +4456,24 @@
           const base64 = await fileToBase64(file);
           const result = await apiPost({
             action: "uploadFile",
-            parentType: uploadTarget.parentType,
-            folderName: uploadTarget.folderName,
+            parentType: target.parentType,
+            folderName: target.folderName,
             fileName: uploadFileName,
             fileData: base64,
             mimeType: file.type || "application/octet-stream"
           });
 
           if (result && result.success) {
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Refreshing...';
             closeUploadModal();
-            await silentRefresh();
+            addFileLocally(target.parentType, target.folderName, result.file);
+            commitAndRender();
             showToast("File '" + uploadFileName + "' uploaded!", "success");
+            // Refresh detail view if open
+            if (typeof currentDetailName !== 'undefined' && currentDetailName) {
+              openMemberDetail(currentDetailName);
+            }
           } else {
+            showToast(result?.error || "Upload failed. Please try again.", "error");
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
           }
