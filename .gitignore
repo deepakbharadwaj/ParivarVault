@@ -8,6 +8,10 @@ vault-config.json
 config.json
 *.local.json
 
+# === Bank account data (migration files) ===
+bank-migration/**/.bank_accounts.json
+bank-migration/*/.bank_accounts.json
+
 # === Environment files ===
 .env
 .env.local
