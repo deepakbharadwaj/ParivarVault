@@ -1,0 +1,4 @@
+{
+  "_copy_me": "cp vault-config.example.json vault-config.json",
+  "appsScriptUrl": "https://script.google.com/macros/s/AKfycbwMlo6wpDUVEY3CK1u5qo9N_-Mp9IAOlW0onb1YPJUr0LYiKTJXRaNeWpJcKYoTT4Da/exec"
+}
