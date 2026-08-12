@@ -125,8 +125,8 @@ This gives you a **globally-accessible URL** protected by Cloudflare's authentic
 **Method 1: Via GitHub (recommended — auto-deploys on push)**
 
 1. Push your repo (with `vault-config.json`) to a **private** GitHub repository
-2. Go to **[dash.cloudflare.com](https://dash.cloudflare.com)** → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
-3. Select your private repo
+2. Go to **[dash.cloudflare.com](https://dash.cloudflare.com)** → **Workers & Pages** → **Create Application** → **Looking to deploy Pages? Get started** → **Connect to Git**
+3. Select your private repo → **Begin setup**
 4. Configure build:
    - **Build command:** (leave empty — no build step)
    - **Build output directory:** `/` (root)
