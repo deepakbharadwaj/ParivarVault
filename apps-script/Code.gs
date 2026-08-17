@@ -661,6 +661,9 @@ function handleCopyFromDrive(params) {
   const dueDate = (params.dueDate || "").trim();
   let fileName = (params.fileName || "").trim();
 
+  if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+    return { success: false, error: "Invalid date format. Use YYYY-MM-DD" };
+  }
   if (!parentType || !folderName || !sourceUrlOrId) {
     return {
       success: false,
@@ -686,6 +689,11 @@ function handleCopyFromDrive(params) {
     // Folders cannot be copied as documents
     if (source.getMimeType() === MimeType.FOLDER) {
       return { success: false, error: "That link points to a folder. Paste a file link instead." };
+    }
+
+    // Keep consistent with the UI/server per-file limits and avoid long copy operations.
+    if (source.getSize() > 6 * 1024 * 1024) {
+      return { success: false, error: "File too large. Maximum ~6 MB per file." };
     }
 
     if (!fileName) {

@@ -4521,7 +4521,7 @@
             }
           } else {
             showToast(result?.error || "Drive copy failed. Please try again.", "error");
-            btn.disabled = false;
+            updateUploadSubmitState();
             btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
           }
         } catch (err) {
