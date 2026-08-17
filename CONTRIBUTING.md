@@ -29,6 +29,12 @@ This project adheres to the [Contributor Covenant Code of Conduct](https://www.c
 3. Suggest implementation approach (optional)
 4. Tag it with `enhancement`
 
+### 🎯 Picking from the Backlog
+1. Browse [`BACKLOG.md`](BACKLOG.md) — every item has a problem statement, acceptance criteria, and technical notes.
+2. Claim an item by opening an issue titled `PV-00X — <title>` and saying you'd like to work on it (tag `@deepakbharadwaj`).
+3. Branch as `feat/pv-00X-short-name` and follow the item's acceptance criteria.
+4. Reference the item in your PR title: `feat: pv-00X <short description>`.
+
 ### 🔧 Pull Requests
 1. **Fork** the repository
 2. **Clone** your fork:
@@ -107,6 +113,7 @@ index.html          # Single-file PWA app. All HTML, CSS, JS in one file (simpli
 
 ## ✅ PR Checklist
 
+- [ ] Backlog item ID (e.g. `PV-003`) referenced in the PR description, if applicable
 - [ ] Code works when opening `index.html` directly in a browser
 - [ ] Run `tests/test-runner.html` — all tests pass ✅
 - [ ] No new CDN dependencies (or justified in PR description)

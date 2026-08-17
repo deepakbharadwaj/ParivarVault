@@ -93,6 +93,7 @@ ParivarVault/
 ├── sw.js                        # Service Worker (offline support)
 ├── vault-config.example.json    # Config template
 ├── vault-config.json            # YOUR config (gitignored)
+├── BACKLOG.md                   # Product backlog — pick a feature, ship a PR
 ├── apps-script/
 │   └── Code.gs                  # Google Apps Script backend
 ├── screenshots/                 # App screenshots
