@@ -119,6 +119,41 @@ function testResolveUploadTarget() {
   TestRunner.equal("Rejects incomplete target", resolveUploadTarget({ parentType: "PEOPLE" }), null);
 }
 
+function parseDriveFileId(input) {
+  const raw = (input || "").trim();
+  if (!raw) return null;
+  let m = raw.match(/\/(?:file\/)?d\/([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  m = raw.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(raw)) return raw;
+  return null;
+}
+
+function testParseDriveFileId() {
+  TestRunner.suite("Parse Drive File ID");
+
+  const fileId = "1aBcDeFgHiJkLmNoPqRsTuVwXyZ012345";
+  TestRunner.equal(
+    "Parses /file/d/ URL",
+    parseDriveFileId(`https://drive.google.com/file/d/${fileId}/view?usp=sharing`),
+    fileId
+  );
+  TestRunner.equal(
+    "Parses open?id= URL",
+    parseDriveFileId(`https://drive.google.com/open?id=${fileId}`),
+    fileId
+  );
+  TestRunner.equal(
+    "Parses docs.google.com /d/ URL",
+    parseDriveFileId(`https://docs.google.com/document/d/${fileId}/edit`),
+    fileId
+  );
+  TestRunner.equal("Parses raw file ID", parseDriveFileId(fileId), fileId);
+  TestRunner.equal("Returns null for empty", parseDriveFileId(""), null);
+  TestRunner.equal("Returns null for garbage", parseDriveFileId("not-a-drive-link"), null);
+}
+
 // --- DUE_DATE_REGEX ---
 function testDueDateRegex() {
   TestRunner.suite("Due Date Regex");
@@ -509,6 +544,7 @@ function runAllTests() {
   mockDocumentElement();
 
   testResolveUploadTarget();
+  testParseDriveFileId();
   testDueDateRegex();
   testGetFileIcon();
   testGetDocumentFormat();

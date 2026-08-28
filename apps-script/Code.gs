@@ -426,6 +426,8 @@ function doPost(e) {
         return jsonResponse(handleDeleteFolder(e.parameter));
       case "uploadFile":
         return jsonResponse(handleUploadFile(e.parameter));
+      case "copyFromDrive":
+        return jsonResponse(handleCopyFromDrive(e.parameter));
       case "deleteFile":
         return jsonResponse(handleDeleteFile(e.parameter));
       case "renameItem":
@@ -535,6 +537,66 @@ function handleDeleteFolder(params) {
 }
 
 /**
+ * Resolve the vault destination folder for uploads/copies.
+ * @param {string} parentType - PEOPLE|VEHICLES|PROPERTIES|SHARED
+ * @param {string} folderName - member/vehicle/property name (or Shared_Documents)
+ * @returns {GoogleAppsScript.Drive.Folder|{success:false,error:string}}
+ */
+function resolveTargetFolder(parentType, folderName) {
+  const root = getVaultRoot();
+  if (parentType === "SHARED") {
+    return findOrCreateFolder(root, CONFIG.SHARED_FOLDER_NAME);
+  }
+  const configKey = parentType + "_FOLDER_NAME";
+  const parentFolderName = CONFIG[configKey];
+  if (!parentFolderName) {
+    return { success: false, error: "Invalid parentType: " + parentType };
+  }
+  const parentFolder = findOrCreateFolder(root, parentFolderName);
+  return findOrCreateFolder(parentFolder, folderName);
+}
+
+/**
+ * Extract a Google Drive file ID from a URL or raw ID string.
+ * Supports:
+ *   https://drive.google.com/file/d/FILE_ID/view
+ *   https://drive.google.com/open?id=FILE_ID
+ *   https://docs.google.com/document/d/FILE_ID/edit
+ *   raw FILE_ID
+ */
+function parseDriveFileId(input) {
+  const raw = (input || "").trim();
+  if (!raw) return null;
+
+  // /file/d/ID or /d/ID (Docs/Sheets/etc.)
+  let m = raw.match(/\/(?:file\/)?d\/([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+
+  // ?id=FILE_ID or &id=FILE_ID
+  m = raw.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+
+  // Raw Drive file ID (no URL)
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(raw)) return raw;
+
+  return null;
+}
+
+/**
+ * Append _due_YYYY-MM-DD before the file extension (or at the end).
+ */
+function applyDueDateToFileName(fileName, dueDate) {
+  if (!dueDate) return fileName;
+  // Strip any existing _due_ date first
+  const cleaned = fileName.replace(/_due_\d{4}-\d{2}-\d{2}/i, "");
+  const lastDot = cleaned.lastIndexOf(".");
+  if (lastDot > 0) {
+    return cleaned.substring(0, lastDot) + "_due_" + dueDate + cleaned.substring(lastDot);
+  }
+  return cleaned + "_due_" + dueDate;
+}
+
+/**
  * Upload a file to a specific sub-folder.
  * Accepts base64-encoded file data via URL-encoded POST params.
  * @param {Object} params - e.parameter from doPost
@@ -559,19 +621,9 @@ function handleUploadFile(params) {
     return { success: false, error: "File too large. Maximum ~6 MB per upload." };
   }
 
-  const root = getVaultRoot();
-  let targetFolder;
-
-  if (parentType === "SHARED") {
-    targetFolder = findOrCreateFolder(root, CONFIG.SHARED_FOLDER_NAME);
-  } else {
-    const configKey = parentType + "_FOLDER_NAME";
-    const parentFolderName = CONFIG[configKey];
-    if (!parentFolderName) {
-      return { success: false, error: "Invalid parentType: " + parentType };
-    }
-    const parentFolder = findOrCreateFolder(root, parentFolderName);
-    targetFolder = findOrCreateFolder(parentFolder, folderName);
+  const targetFolder = resolveTargetFolder(parentType, folderName);
+  if (targetFolder && targetFolder.success === false) {
+    return targetFolder;
   }
 
   try {
@@ -590,6 +642,81 @@ function handleUploadFile(params) {
     };
   } catch (err) {
     return { success: false, error: "Failed to save file: " + err.toString() };
+  }
+}
+
+/**
+ * Copy an existing Drive file into a vault sub-folder.
+ * Avoids re-uploading bytes from the browser — uses DriveApp.makeCopy.
+ *
+ * Expected params:
+ * { action: "copyFromDrive", parentType: "PEOPLE", folderName: "Dad",
+ *   sourceUrlOrId: "https://drive.google.com/file/d/FILE_ID/view",
+ *   fileName: "optional-rename.pdf", dueDate: "2026-12-31" }
+ */
+function handleCopyFromDrive(params) {
+  const parentType = params.parentType;
+  const folderName = (params.folderName || "").trim();
+  const sourceUrlOrId = (params.sourceUrlOrId || "").trim();
+  const dueDate = (params.dueDate || "").trim();
+  let fileName = (params.fileName || "").trim();
+
+  if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+    return { success: false, error: "Invalid date format. Use YYYY-MM-DD" };
+  }
+  if (!parentType || !folderName || !sourceUrlOrId) {
+    return {
+      success: false,
+      error: "Missing required fields: parentType, folderName, sourceUrlOrId"
+    };
+  }
+
+  const fileId = parseDriveFileId(sourceUrlOrId);
+  if (!fileId) {
+    return {
+      success: false,
+      error: "Could not parse a Google Drive file ID from the provided link or ID"
+    };
+  }
+
+  const targetFolder = resolveTargetFolder(parentType, folderName);
+  if (targetFolder && targetFolder.success === false) {
+    return targetFolder;
+  }
+
+  try {
+    const source = DriveApp.getFileById(fileId);
+    // Folders cannot be copied as documents
+    if (source.getMimeType() === MimeType.FOLDER) {
+      return { success: false, error: "That link points to a folder. Paste a file link instead." };
+    }
+
+    // Keep consistent with the UI/server per-file limits and avoid long copy operations.
+    if (source.getSize() > 6 * 1024 * 1024) {
+      return { success: false, error: "File too large. Maximum ~6 MB per file." };
+    }
+
+    if (!fileName) {
+      fileName = source.getName();
+    }
+    fileName = applyDueDateToFileName(fileName, dueDate);
+
+    const copy = source.makeCopy(fileName, targetFolder);
+    return {
+      success: true,
+      file: {
+        id: copy.getId(),
+        name: copy.getName(),
+        mimeType: copy.getMimeType(),
+        size: copy.getSize(),
+        lastUpdated: copy.getLastUpdated().toISOString()
+      }
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: "Failed to copy Drive file (check access / link): " + err.toString()
+    };
   }
 }
 

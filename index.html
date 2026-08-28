@@ -920,6 +920,16 @@
           </div>
           <button onclick="clearFileSelection()" class="text-red-400 hover:text-red-300 text-sm"><i class="fa-solid fa-xmark"></i></button>
         </div>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="flex-1 h-px bg-white/10"></div>
+          <span class="text-[10px] uppercase tracking-wider text-gray-500" data-i18n="modal.orDrive">or from Google Drive</span>
+          <div class="flex-1 h-px bg-white/10"></div>
+        </div>
+        <div class="mb-4">
+          <label class="text-xs text-gray-400 block mb-1.5"><i class="fa-brands fa-google-drive text-green-400 mr-1"></i> <span data-i18n="modal.driveLink">Google Drive file link or ID</span></label>
+          <input id="upload-drive-link" type="text" class="modal-input" placeholder="https://drive.google.com/file/d/..." oninput="onDriveLinkInput()" />
+          <p class="text-[10px] text-gray-500 mt-1" data-i18n="modal.driveLinkHint">Paste a Drive file URL or file ID. The file must be accessible to your Apps Script Google account — it will be copied into the vault folder.</p>
+        </div>
         <!-- Due date inline — no second popup needed -->
         <div class="mt-3 pt-3 border-t border-white/10">
           <label class="text-xs text-gray-400 block mb-1.5"><i class="fa-solid fa-calendar-plus text-blue-400 mr-1"></i> Set Due Date (optional)</label>
@@ -1131,6 +1141,9 @@
             addProperty: "Add Property", propertyName: "Property Name", createProperty: "Add Property",
             uploadFile: "Upload Document", dropHint: "Click or drag & drop a file here",
             sizeLimit: "Max ~5 MB per file", upload: "Upload", cancel: "Cancel",
+            orDrive: "or from Google Drive",
+            driveLink: "Google Drive file link or ID",
+            driveLinkHint: "Paste a Drive file URL or file ID. Must be accessible to your Apps Script account — it will be copied into the vault.",
             confirmDelete: "Confirm Delete", delete: "Delete",
             deleteWarning: "This action moves the item to trash. You can recover it from Google Drive trash.",
             deleteFolderWarning: "Are you sure you want to delete ", deleteFileWarning: "Are you sure you want to delete ",
@@ -1172,6 +1185,9 @@
             addProperty: "संपत्ति जोड़ें", propertyName: "संपत्ति का नाम", createProperty: "संपत्ति जोड़ें",
             uploadFile: "दस्तावेज़ अपलोड करें", dropHint: "फ़ाइल यहां क्लिक करें या ड्रैग करें",
             sizeLimit: "अधिकतम ~5 MB प्रति फ़ाइल", upload: "अपलोड", cancel: "रद्द करें",
+            orDrive: "या Google Drive से",
+            driveLink: "Google Drive फ़ाइल लिंक या ID",
+            driveLinkHint: "Drive फ़ाइल URL या ID पेस्ट करें। Apps Script खाते से पहुँच योग्य होना चाहिए — वॉल्ट फ़ोल्डर में कॉपी होगा।",
             confirmDelete: "हटाने की पुष्टि करें", delete: "हटाएं",
             deleteWarning: "यह आइटम ट्रैश में जाएगा। आप Google Drive ट्रैश से पुनर्प्राप्त कर सकते हैं।",
             deleteFolderWarning: "क्या आप वाकई हटाना चाहते हैं ", deleteFileWarning: "क्या आप वाकई हटाना चाहते हैं ",
@@ -4169,6 +4185,25 @@
       let uploadTarget = null; // { parentType, folderName }
       let selectedFile = null;
 
+      function parseDriveFileId(input) {
+        const raw = (input || "").trim();
+        if (!raw) return null;
+        let m = raw.match(/\/(?:file\/)?d\/([a-zA-Z0-9_-]+)/);
+        if (m) return m[1];
+        m = raw.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (m) return m[1];
+        if (/^[a-zA-Z0-9_-]{20,}$/.test(raw)) return raw;
+        return null;
+      }
+
+      function updateUploadSubmitState() {
+        const btn = document.getElementById("upload-submit-btn");
+        if (!btn) return;
+        const driveLink = (document.getElementById("upload-drive-link")?.value || "").trim();
+        const hasDrive = !!parseDriveFileId(driveLink);
+        btn.disabled = !(selectedFile || hasDrive);
+      }
+
       function resolveUploadTarget(target) {
         if (!target) return null;
         const normalizedTarget = {
@@ -4198,6 +4233,7 @@
         document.getElementById("upload-drop-zone").classList.remove("hidden");
         document.getElementById("upload-submit-btn").disabled = true;
         document.getElementById("upload-file-input").value = "";
+        document.getElementById("upload-drive-link").value = "";
         document.getElementById("upload-due-date").value = "";
         document.getElementById("modal-upload-file").classList.remove("hidden-modal");
       }
@@ -4222,26 +4258,47 @@
             return;
           }
           selectedFile = file;
+          // Prefer local file over Drive link when both present
+          document.getElementById("upload-drive-link").value = "";
           document.getElementById("upload-file-name").textContent = file.name;
           document.getElementById("upload-file-icon").className = "fa-solid " + getFileIcon(file.type || "application/octet-stream") + " mr-2";
           document.getElementById("upload-file-preview").classList.remove("hidden");
           document.getElementById("upload-drop-zone").classList.add("hidden");
-          document.getElementById("upload-submit-btn").disabled = false;
+          updateUploadSubmitState();
         }
       }
 
-      function clearFileSelection() {
+      function onDriveLinkInput() {
+        const driveLink = (document.getElementById("upload-drive-link")?.value || "").trim();
+        if (driveLink && selectedFile) {
+          // Prefer Drive link — clear local file selection
+          clearFileSelection(false);
+        }
+        updateUploadSubmitState();
+      }
+
+      function clearFileSelection(updateState = true) {
         selectedFile = null;
         document.getElementById("upload-file-input").value = "";
         document.getElementById("upload-file-preview").classList.add("hidden");
         document.getElementById("upload-drop-zone").classList.remove("hidden");
-        document.getElementById("upload-submit-btn").disabled = true;
+        if (updateState) updateUploadSubmitState();
       }
 
       async function submitFileUpload() {
-        if (!selectedFile || !uploadTarget) return;
+        if (!uploadTarget) return;
         const dueDate = document.getElementById("upload-due-date").value || null;
-        await doActualUpload(selectedFile, dueDate);
+        const driveLink = (document.getElementById("upload-drive-link")?.value || "").trim();
+
+        if (selectedFile) {
+          await doActualUpload(selectedFile, dueDate);
+          return;
+        }
+        if (parseDriveFileId(driveLink)) {
+          await doCopyFromDrive(driveLink, dueDate);
+          return;
+        }
+        showToast("Select a local file or paste a Google Drive link.", "error");
       }
 
       function fileToBase64(file) {
@@ -4429,6 +4486,50 @@
       // ═══════════════════════════════════════════════════════
       // FILE UPLOAD — due date is inline in the upload modal
       // ═══════════════════════════════════════════════════════
+
+      async function doCopyFromDrive(sourceUrlOrId, dueDate) {
+        const target = resolveUploadTarget(uploadTarget);
+        if (!sourceUrlOrId || !target) {
+          showToast("Copy cancelled: missing Drive link or target.", "error");
+          return;
+        }
+        if (!parseDriveFileId(sourceUrlOrId)) {
+          showToast("Invalid Google Drive link or file ID.", "error");
+          return;
+        }
+        const btn = document.getElementById("upload-submit-btn");
+        if (!btn) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Copying...';
+
+        try {
+          const result = await apiPost({
+            action: "copyFromDrive",
+            parentType: target.parentType,
+            folderName: target.folderName,
+            sourceUrlOrId: sourceUrlOrId,
+            dueDate: dueDate || ""
+          });
+
+          if (result && result.success) {
+            closeUploadModal();
+            addFileLocally(target.parentType, target.folderName, result.file);
+            commitAndRender();
+            showToast("File '" + result.file.name + "' copied from Drive!", "success");
+            if (typeof currentDetailName !== "undefined" && currentDetailName) {
+              openMemberDetail(currentDetailName);
+            }
+          } else {
+            showToast(result?.error || "Drive copy failed. Please try again.", "error");
+            updateUploadSubmitState();
+            btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
+          }
+        } catch (err) {
+          showToast("Drive copy failed: " + (err.message || String(err)), "error");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
+        }
+      }
 
       async function doActualUpload(file, dueDate) {
         const target = resolveUploadTarget(uploadTarget);
