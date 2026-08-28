@@ -930,6 +930,14 @@
           <input id="upload-drive-link" type="text" class="modal-input" placeholder="https://drive.google.com/file/d/..." oninput="onDriveLinkInput()" />
           <p class="text-[10px] text-gray-500 mt-1" data-i18n="modal.driveLinkHint">Paste a Drive file URL or file ID. The file must be accessible to your Apps Script Google account — it will be copied into the vault folder.</p>
         </div>
+        <div class="mb-4">
+          <label class="text-xs text-gray-400 block mb-1.5"><i class="fa-solid fa-i-cursor text-blue-400 mr-1"></i> <span data-i18n="modal.fileNameOverride">File name</span> <span class="text-gray-600">(optional override)</span></label>
+          <input id="upload-file-name-input" type="text" class="modal-input" maxlength="128" placeholder="e.g. Dad_PAN_Card.pdf" oninput="onUploadFileNameInput()" />
+          <div class="flex items-center justify-between mt-1 gap-2">
+            <p id="upload-file-name-hint" class="text-[10px] text-gray-500" data-i18n="modal.fileNameHint">Max 128 chars. Letters, numbers, and Drive-safe symbols. Not allowed: / \ : * ? " &lt; &gt; |</p>
+            <span id="upload-file-name-count" class="text-[10px] text-gray-600 tabular-nums shrink-0">0/128</span>
+          </div>
+        </div>
         <!-- Due date inline — no second popup needed -->
         <div class="mt-3 pt-3 border-t border-white/10">
           <label class="text-xs text-gray-400 block mb-1.5"><i class="fa-solid fa-calendar-plus text-blue-400 mr-1"></i> Set Due Date (optional)</label>
@@ -1144,6 +1152,9 @@
             orDrive: "or from Google Drive",
             driveLink: "Google Drive file link or ID",
             driveLinkHint: "Paste a Drive file URL or file ID. Must be accessible to your Apps Script account — it will be copied into the vault.",
+            fileNameOverride: "File name",
+            fileNameHint: "Max 128 chars. Letters, numbers, and Drive-safe symbols. Not allowed: / \\ : * ? \" < > |",
+            fileNameInvalid: "Invalid file name. Remove forbidden characters.",
             confirmDelete: "Confirm Delete", delete: "Delete",
             deleteWarning: "This action moves the item to trash. You can recover it from Google Drive trash.",
             deleteFolderWarning: "Are you sure you want to delete ", deleteFileWarning: "Are you sure you want to delete ",
@@ -1188,6 +1199,9 @@
             orDrive: "या Google Drive से",
             driveLink: "Google Drive फ़ाइल लिंक या ID",
             driveLinkHint: "Drive फ़ाइल URL या ID पेस्ट करें। Apps Script खाते से पहुँच योग्य होना चाहिए — वॉल्ट फ़ोल्डर में कॉपी होगा।",
+            fileNameOverride: "फ़ाइल नाम",
+            fileNameHint: "अधिकतम 128 अक्षर। अक्षर, संख्याएँ और Drive-safe चिह्न। अनुमति नहीं: / \\ : * ? \" < > |",
+            fileNameInvalid: "अमान्य फ़ाइल नाम। निषिद्ध अक्षर हटाएँ।",
             confirmDelete: "हटाने की पुष्टि करें", delete: "हटाएं",
             deleteWarning: "यह आइटम ट्रैश में जाएगा। आप Google Drive ट्रैश से पुनर्प्राप्त कर सकते हैं।",
             deleteFolderWarning: "क्या आप वाकई हटाना चाहते हैं ", deleteFileWarning: "क्या आप वाकई हटाना चाहते हैं ",
@@ -4185,6 +4199,59 @@
       let uploadTarget = null; // { parentType, folderName }
       let selectedFile = null;
 
+      // Google Drive rejects these in file names (Drive + Drive for desktop).
+      // Also block ASCII control characters. Max length: 128.
+      const DRIVE_FILENAME_MAX = 128;
+      const DRIVE_FILENAME_FORBIDDEN = /[\/\\:\*\?"<>|\x00-\x1F]/;
+
+      function isValidDriveFileName(name, { allowEmpty = false } = {}) {
+        if (name == null) return allowEmpty;
+        const trimmed = String(name).trim();
+        if (!trimmed) return allowEmpty;
+        if (trimmed.length > DRIVE_FILENAME_MAX) return false;
+        if (trimmed === "." || trimmed === "..") return false;
+        if (DRIVE_FILENAME_FORBIDDEN.test(trimmed)) return false;
+        return true;
+      }
+
+      function getUploadFileNameOverride() {
+        const el = document.getElementById("upload-file-name-input");
+        return el ? el.value.trim() : "";
+      }
+
+      function setUploadFileNameInput(value) {
+        const el = document.getElementById("upload-file-name-input");
+        if (!el) return;
+        el.value = (value || "").slice(0, DRIVE_FILENAME_MAX);
+        onUploadFileNameInput();
+      }
+
+      function onUploadFileNameInput() {
+        const el = document.getElementById("upload-file-name-input");
+        const hint = document.getElementById("upload-file-name-hint");
+        const count = document.getElementById("upload-file-name-count");
+        if (!el) return;
+        // Soft-strip forbidden characters as the user types
+        const cleaned = el.value
+          .replace(DRIVE_FILENAME_FORBIDDEN, "")
+          .slice(0, DRIVE_FILENAME_MAX);
+        if (cleaned !== el.value) el.value = cleaned;
+        if (count) count.textContent = el.value.length + "/" + DRIVE_FILENAME_MAX;
+        const trimmed = el.value.trim();
+        const valid = isValidDriveFileName(trimmed, { allowEmpty: true });
+        if (hint) {
+          if (!valid) {
+            hint.className = "text-[10px] text-red-400";
+            hint.textContent = t("modal.fileNameInvalid") || "Invalid file name.";
+          } else {
+            hint.className = "text-[10px] text-gray-500";
+            hint.setAttribute("data-i18n", "modal.fileNameHint");
+            hint.textContent = t("modal.fileNameHint") || hint.textContent;
+          }
+        }
+        updateUploadSubmitState();
+      }
+
       function parseDriveFileId(input) {
         const raw = (input || "").trim();
         if (!raw) return null;
@@ -4201,7 +4268,9 @@
         if (!btn) return;
         const driveLink = (document.getElementById("upload-drive-link")?.value || "").trim();
         const hasDrive = !!parseDriveFileId(driveLink);
-        btn.disabled = !(selectedFile || hasDrive);
+        const nameOverride = getUploadFileNameOverride();
+        const nameOk = isValidDriveFileName(nameOverride, { allowEmpty: true });
+        btn.disabled = !(selectedFile || hasDrive) || !nameOk;
       }
 
       function resolveUploadTarget(target) {
@@ -4235,6 +4304,7 @@
         document.getElementById("upload-file-input").value = "";
         document.getElementById("upload-drive-link").value = "";
         document.getElementById("upload-due-date").value = "";
+        setUploadFileNameInput("");
         document.getElementById("modal-upload-file").classList.remove("hidden-modal");
       }
 
@@ -4264,6 +4334,8 @@
           document.getElementById("upload-file-icon").className = "fa-solid " + getFileIcon(file.type || "application/octet-stream") + " mr-2";
           document.getElementById("upload-file-preview").classList.remove("hidden");
           document.getElementById("upload-drop-zone").classList.add("hidden");
+          // Prefill override with original name so user can edit it
+          setUploadFileNameInput(file.name);
           updateUploadSubmitState();
         }
       }
@@ -4289,13 +4361,19 @@
         if (!uploadTarget) return;
         const dueDate = document.getElementById("upload-due-date").value || null;
         const driveLink = (document.getElementById("upload-drive-link")?.value || "").trim();
+        const nameOverride = getUploadFileNameOverride();
+
+        if (nameOverride && !isValidDriveFileName(nameOverride)) {
+          showToast(t("modal.fileNameInvalid") || "Invalid file name.", "error");
+          return;
+        }
 
         if (selectedFile) {
-          await doActualUpload(selectedFile, dueDate);
+          await doActualUpload(selectedFile, dueDate, nameOverride || null);
           return;
         }
         if (parseDriveFileId(driveLink)) {
-          await doCopyFromDrive(driveLink, dueDate);
+          await doCopyFromDrive(driveLink, dueDate, nameOverride || null);
           return;
         }
         showToast("Select a local file or paste a Google Drive link.", "error");
@@ -4487,7 +4565,7 @@
       // FILE UPLOAD — due date is inline in the upload modal
       // ═══════════════════════════════════════════════════════
 
-      async function doCopyFromDrive(sourceUrlOrId, dueDate) {
+      async function doCopyFromDrive(sourceUrlOrId, dueDate, nameOverride) {
         const target = resolveUploadTarget(uploadTarget);
         if (!sourceUrlOrId || !target) {
           showToast("Copy cancelled: missing Drive link or target.", "error");
@@ -4503,13 +4581,16 @@
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Copying...';
 
         try {
-          const result = await apiPost({
+          const payload = {
             action: "copyFromDrive",
             parentType: target.parentType,
             folderName: target.folderName,
             sourceUrlOrId: sourceUrlOrId,
             dueDate: dueDate || ""
-          });
+          };
+          if (nameOverride) payload.fileName = nameOverride;
+
+          const result = await apiPost(payload);
 
           if (result && result.success) {
             closeUploadModal();
@@ -4531,7 +4612,7 @@
         }
       }
 
-      async function doActualUpload(file, dueDate) {
+      async function doActualUpload(file, dueDate, nameOverride) {
         const target = resolveUploadTarget(uploadTarget);
         if (!file || !target) {
           showToast("Upload cancelled: missing file or target.", "error");
@@ -4543,8 +4624,8 @@
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
 
         try {
-          // Determine file name - add due date if provided
-          let uploadFileName = file.name;
+          // Determine file name - override if provided, then add due date if set
+          let uploadFileName = (nameOverride && nameOverride.trim()) ? nameOverride.trim() : file.name;
           if (dueDate) {
             const lastDot = uploadFileName.lastIndexOf(".");
             if (lastDot > 0) {
@@ -4552,6 +4633,13 @@
             } else {
               uploadFileName = uploadFileName + "_due_" + dueDate;
             }
+          }
+
+          if (!isValidDriveFileName(uploadFileName)) {
+            showToast(t("modal.fileNameInvalid") || "Invalid file name.", "error");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-upload mr-2"></i> ' + t("modal.upload");
+            return;
           }
 
           const base64 = await fileToBase64(file);

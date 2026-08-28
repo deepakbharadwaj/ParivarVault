@@ -597,10 +597,26 @@ function applyDueDateToFileName(fileName, dueDate) {
 }
 
 /**
+ * Validate a Drive file name.
+ * Drive (+ Drive for desktop) forbids: / \ : * ? " < > | and control chars.
+ * App limit: 128 characters.
+ * Empty is allowed only when allowEmpty is true (caller will use source name).
+ */
+function isValidDriveFileName(name, allowEmpty) {
+  if (name == null) return !!allowEmpty;
+  const trimmed = String(name).trim();
+  if (!trimmed) return !!allowEmpty;
+  if (trimmed.length > 128) return false;
+  if (trimmed === "." || trimmed === "..") return false;
+  if (/[\/\\:\*\?"<>|\x00-\x1F]/.test(trimmed)) return false;
+  return true;
+}
+
+/**
  * Upload a file to a specific sub-folder.
  * Accepts base64-encoded file data via URL-encoded POST params.
  * @param {Object} params - e.parameter from doPost
- * 
+ *
  * Expected params:
  * { action: "uploadFile", parentType: "PEOPLE", folderName: "Dad",
  *   fileName: "doc.pdf", fileData: "<base64>", mimeType: "application/pdf" }
@@ -614,6 +630,13 @@ function handleUploadFile(params) {
 
   if (!parentType || !folderName || !fileName || !fileData) {
     return { success: false, error: "Missing required fields: parentType, folderName, fileName, fileData" };
+  }
+
+  if (!isValidDriveFileName(fileName, false)) {
+    return {
+      success: false,
+      error: "Invalid file name. Max 128 chars; cannot contain / \\ : * ? \" < > | or control characters."
+    };
   }
 
   // Sanity check file size (Apps Script web app limit ~6MB, decoded base64 ~4.5MB raw)
@@ -671,6 +694,13 @@ function handleCopyFromDrive(params) {
     };
   }
 
+  if (fileName && !isValidDriveFileName(fileName, false)) {
+    return {
+      success: false,
+      error: "Invalid file name. Max 128 chars; cannot contain / \\ : * ? \" < > | or control characters."
+    };
+  }
+
   const fileId = parseDriveFileId(sourceUrlOrId);
   if (!fileId) {
     return {
@@ -700,6 +730,13 @@ function handleCopyFromDrive(params) {
       fileName = source.getName();
     }
     fileName = applyDueDateToFileName(fileName, dueDate);
+
+    if (!isValidDriveFileName(fileName, false)) {
+      return {
+        success: false,
+        error: "Invalid final file name after applying due date. Shorten the name or remove forbidden characters."
+      };
+    }
 
     const copy = source.makeCopy(fileName, targetFolder);
     return {

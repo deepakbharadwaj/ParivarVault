@@ -154,6 +154,37 @@ function testParseDriveFileId() {
   TestRunner.equal("Returns null for garbage", parseDriveFileId("not-a-drive-link"), null);
 }
 
+function isValidDriveFileName(name, allowEmpty) {
+  if (name == null) return !!allowEmpty;
+  const trimmed = String(name).trim();
+  if (!trimmed) return !!allowEmpty;
+  if (trimmed.length > 128) return false;
+  if (trimmed === "." || trimmed === "..") return false;
+  if (/[\/\\:\*\?"<>|\x00-\x1F]/.test(trimmed)) return false;
+  return true;
+}
+
+function testIsValidDriveFileName() {
+  TestRunner.suite("Drive File Name Validation");
+
+  TestRunner.assert("Allows normal name", () => isValidDriveFileName("Dad_PAN_Card.pdf") === true);
+  TestRunner.assert("Allows spaces and dots", () => isValidDriveFileName("My Doc (1).pdf") === true);
+  TestRunner.assert("Allows unicode letters", () => isValidDriveFileName("आधार_कार्ड.pdf") === true);
+  TestRunner.assert("Rejects slash", () => isValidDriveFileName("a/b.pdf") === false);
+  TestRunner.assert("Rejects backslash", () => isValidDriveFileName("a\\b.pdf") === false);
+  TestRunner.assert("Rejects colon", () => isValidDriveFileName("a:b.pdf") === false);
+  TestRunner.assert("Rejects asterisk", () => isValidDriveFileName("a*.pdf") === false);
+  TestRunner.assert("Rejects question mark", () => isValidDriveFileName("a?.pdf") === false);
+  TestRunner.assert('Rejects double quote', () => isValidDriveFileName('a"b.pdf') === false);
+  TestRunner.assert("Rejects angle brackets", () => isValidDriveFileName("a<b>.pdf") === false);
+  TestRunner.assert("Rejects pipe", () => isValidDriveFileName("a|b.pdf") === false);
+  TestRunner.assert("Rejects empty when not allowed", () => isValidDriveFileName("   ", false) === false);
+  TestRunner.assert("Allows empty when allowed", () => isValidDriveFileName("", true) === true);
+  TestRunner.assert("Rejects over 128 chars", () => isValidDriveFileName("a".repeat(129)) === false);
+  TestRunner.assert("Allows exactly 128 chars", () => isValidDriveFileName("a".repeat(128)) === true);
+  TestRunner.assert("Rejects dot-only", () => isValidDriveFileName(".") === false);
+}
+
 // --- DUE_DATE_REGEX ---
 function testDueDateRegex() {
   TestRunner.suite("Due Date Regex");
@@ -545,6 +576,7 @@ function runAllTests() {
 
   testResolveUploadTarget();
   testParseDriveFileId();
+  testIsValidDriveFileName();
   testDueDateRegex();
   testGetFileIcon();
   testGetDocumentFormat();
